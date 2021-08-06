@@ -59,6 +59,12 @@ public:
   // Callback for processors to let the simulation know they were reset.
   virtual void proc_reset(unsigned id) override;
 
+  void diff_step_once();
+  void diff_get_regs(void* diff_context);
+  void diff_set_regs(void* diff_context);
+  void diff_memcpy(reg_t dest, void* src, size_t n);
+  void diff_idle();
+
 private:
   isa_parser_t isa;
   const cfg_t * const cfg;
