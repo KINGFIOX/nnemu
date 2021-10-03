@@ -30,7 +30,7 @@ class canonical_termios_t
   bool restore_tios;
 };
 
-static canonical_termios_t tios; // exit() will clean up for us
+//static canonical_termios_t tios; // exit() will clean up for us
 
 int canonical_terminal_t::read()
 {
