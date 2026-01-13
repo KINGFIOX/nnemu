@@ -1,6 +1,6 @@
 // The following is a RISC-V program to test the functionality of the
 // dummy RoCC accelerator.
-// Compile with riscv64-unknown-elf-gcc dummy_rocc_test.c
+// Compile with $CROSS_COMPILEgcc dummy_rocc_test.c
 // Run with spike --extension=dummy_rocc pk a.out
 
 #include <assert.h>
