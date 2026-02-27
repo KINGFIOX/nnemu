@@ -909,7 +909,7 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
     DEFINE_RTYPE(remuw);
   }
 
-  if (isa->extension_enabled(EXT_ZBA)) { 
+  if (isa->extension_enabled(EXT_ZBA)) {
     DEFINE_RTYPE(sh1add);
     DEFINE_RTYPE(sh2add);
     DEFINE_RTYPE(sh3add);
@@ -923,7 +923,7 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
     }
   }
 
-  if (isa->extension_enabled(EXT_ZBB)) { 
+  if (isa->extension_enabled(EXT_ZBB)) {
     DEFINE_RTYPE(ror);
     DEFINE_RTYPE(rol);
     DEFINE_ITYPE_SHIFT(rori);
@@ -958,7 +958,7 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
     DEFINE_RTYPE(clmulr);
   }
 
-  if (isa->extension_enabled(EXT_ZBS)) { 
+  if (isa->extension_enabled(EXT_ZBS)) {
     DEFINE_RTYPE(bclr);
     DEFINE_RTYPE(binv);
     DEFINE_RTYPE(bset);
@@ -1123,7 +1123,7 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
     DEFINE_RTYPE(fle_d);
   }
 
-  if (isa->extension_enabled(EXT_ZFH)) { 
+  if (isa->extension_enabled(EXT_ZFH)) {
     DEFINE_FRTYPE(fadd_h);
     DEFINE_FRTYPE(fsub_h);
     DEFINE_FRTYPE(fmul_h);
@@ -1811,7 +1811,7 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
 #define DISASM_RINSN_AND_ROUND(code) \
   DEFINE_RTYPE(code); \
   DEFINE_RTYPE(code##_u); \
-  
+
   if (isa->extension_enabled(EXT_ZMMUL)) {
     DEFINE_RTYPE(mul);
     DEFINE_RTYPE(mulh);

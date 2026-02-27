@@ -1,4 +1,5 @@
 build/
+riscv_gen/
 *.gch
 autom4te.cache/
 .*.swp
@@ -7,3 +8,5 @@ autom4te.cache/
 .gdb_history
 .#*
 *~
+.idea
+.cache

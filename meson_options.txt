@@ -1,0 +1,11 @@
+option('softfloat_pa', type: 'boolean', value: true,
+  description: 'Use minimal softfloat (dummy_for_pa.c) for PA course, set to false for full softfloat')
+
+option('default_isa', type: 'string', value: 'RV64IMAFDC_zicntr_zihpm',
+  description: 'Default value for --isa switch')
+
+option('default_priv', type: 'string', value: 'MSU',
+  description: 'Default value for --priv switch')
+
+option('default_varch', type: 'string', value: 'vlen:128,elen:64',
+  description: 'Default value for --varch switch')
