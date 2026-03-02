@@ -206,6 +206,7 @@ private:
   uint64_t imm_sign() { return xs(31, 1); }
 };
 
+// 这种寄存器组中, 是否含有 zero 这种硬编码的寄存器
 template <class T, size_t N, bool zero_reg>
 class regfile_t
 {

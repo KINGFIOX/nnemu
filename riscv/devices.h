@@ -37,6 +37,7 @@ class rom_device_t : public abstract_device_t {
   std::vector<char> data;
 };
 
+// 一块内存, 或者应该说是一块容器, 里面并不包含 基地址
 class mem_t : public abstract_device_t {
  public:
   mem_t(reg_t size);
