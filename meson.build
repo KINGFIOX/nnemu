@@ -2,7 +2,7 @@
 # Replaces autotools + Makefile build system
 
 project('spike', 'c', 'cpp',
-  version: run_command('scripts/vcs-version.sh', meson.project_source_root(), check: false).stdout().strip(),
+  version: '2026.03.04',
   default_options: [
     'cpp_std=c++17',
     'warning_level=2',
@@ -65,11 +65,16 @@ inc_spike_main = include_directories('spike_main')
 inc_customext = include_directories('customext')
 inc_spike_dasm = include_directories('spike_dasm')
 
+# Install headers for external use (e.g. static linking from other projects)
+install_headers(config_h)
+foreach d : ['fesvr', 'fdt', 'softfloat', 'disasm', 'riscv', 'spike_main', 'customext', 'spike_dasm']
+  install_subdir(d, install_dir: get_option('includedir'), strip_directory: false)
+endforeach
+
 # Common compile args
 common_cpp_args = [
   '-DPREFIX="@0@"'.format(get_option('prefix')),
-  '-Wall', '-Wno-unused',
-  '-fPIC',
+  '-Wno-unused',
 ]
 
 # --- fesvr ---
@@ -235,11 +240,13 @@ riscv_srcs = [
 ] + riscv_gen_srcs
 
 inc_riscv_gen = include_directories('riscv_gen')
+# riscv_gen is generated at configure time above; install for external use
+install_subdir('riscv_gen', install_dir: get_option('includedir'), strip_directory: false)
 
-libriscv = shared_library('riscv', riscv_srcs,
+libriscv = static_library('riscv', riscv_srcs,
   include_directories: [ inc_root, inc_fesvr, inc_fdt, inc_softfloat, inc_disasm, inc_riscv, inc_riscv_gen],
   link_with: [libfesvr, libfdt, libsoftfloat, libdisasm],
-  cpp_args: common_cpp_args + ['-fPIC'],
+  cpp_args: common_cpp_args,
   dependencies: (boost_dep.found() ? [boost_dep] : []) + (have_dlopen ? [dl_dep] : []),
   install: true,
 )
@@ -249,7 +256,7 @@ libcustomext = shared_library('customext',
   'customext/dummy_rocc.cc', 'customext/cflush.cc',
   include_directories: [ inc_root, inc_spike_main, inc_riscv, inc_disasm, inc_softfloat],
   link_with: [libriscv, libdisasm, libsoftfloat],
-  cpp_args: common_cpp_args + ['-fPIC'],
+  cpp_args: common_cpp_args,
   install: true,
 )
 
@@ -291,6 +298,5 @@ spike_dasm = executable('spike-dasm', 'spike_dasm/spike-dasm.cc',
   include_directories: [inc_root, inc_fesvr, inc_disasm, inc_softfloat, inc_riscv, inc_spike_dasm],
   link_with: [libdisasm, libsoftfloat, libriscv],
   cpp_args: common_cpp_args,
-  dependencies: [],
   install: true,
 )
