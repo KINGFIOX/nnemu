@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+#include "nvboard/nvboard.h"
+
 #include "device/device.h"
 
 class sim_t;
@@ -42,21 +44,19 @@ private:
   void MainLoop();
   void Step(uint64_t n);
 
-  // Returns a pointer into the appropriate mem_t for the given physical addr,
-  // or nullptr if the address is not in any memory region.
   char *AddrToHost(uint64_t paddr);
 
   Config config_;
 
   // Spike instances (owned)
-  sim_t *sim_ = nullptr;
-  cfg_t *cfg_ = nullptr;
-  processor_t *proc_ = nullptr;
+  std::unique_ptr<sim_t> sim_;
 
   // Memory regions
   mem_t *flash_ = nullptr;
-  mem_t *sram_ = nullptr;
   mem_t *sdram_ = nullptr;
+
+  // NVBoard
+  std::unique_ptr<nvboard::Board> board_;
 
   // Devices
   UartDevice uart_device_;
@@ -67,8 +67,10 @@ private:
 
   // State
   CpuState state_ = CpuState::kRunning;
+  // 0: GOOD TRAP
+  // 1: BAD TRAP
+  // 2: ABORT
   int exit_code_ = 0;
-  bool nvboard_active_ = false;
 };
 
 } // namespace nnemu

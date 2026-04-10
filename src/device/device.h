@@ -6,6 +6,8 @@
 #include <cstring>
 #include <vector>
 
+#include "nvboard/nvboard.h"
+
 #include "abstract_device.h"
 #include "common.h"
 
@@ -13,17 +15,17 @@ namespace nnemu {
 
 // UART 16550 at kUartBase (0x10000000).
 // Implements THR/RBR/LSR/LCR/DLL/DLM/FCR/IER registers.
-// When nvboard is active, output goes to nvboard UART terminal.
+// When board_ is set, output goes to nvboard UART terminal.
 class UartDevice : public abstract_device_t {
 public:
   UartDevice() = default;
-  void set_nvboard(bool enabled) { nvboard_ = enabled; }
+  void set_board(nvboard::Board *board) { board_ = board; }
 
   bool load(reg_t addr, size_t len, uint8_t *bytes) override;
   bool store(reg_t addr, size_t len, const uint8_t *bytes) override;
 
 private:
-  bool nvboard_ = false;
+  nvboard::Board *board_ = nullptr;
   uint8_t lcr_ = 0;
   uint8_t ier_ = 0;
   uint8_t dll_ = 1;
@@ -37,13 +39,13 @@ private:
 class GpioDevice : public abstract_device_t {
 public:
   GpioDevice() = default;
-  void set_nvboard(bool enabled) { nvboard_ = enabled; }
+  void set_board(nvboard::Board *board) { board_ = board; }
 
   bool load(reg_t addr, size_t len, uint8_t *bytes) override;
   bool store(reg_t addr, size_t len, const uint8_t *bytes) override;
 
 private:
-  bool nvboard_ = false;
+  nvboard::Board *board_ = nullptr;
   uint16_t led_state_ = 0;
 };
 
@@ -52,13 +54,13 @@ private:
 class KeyboardDevice : public abstract_device_t {
 public:
   KeyboardDevice() = default;
-  void set_nvboard(bool enabled) { nvboard_ = enabled; }
+  void set_board(nvboard::Board *board) { board_ = board; }
 
   bool load(reg_t addr, size_t len, uint8_t *bytes) override;
   bool store(reg_t addr, size_t len, const uint8_t *bytes) override;
 
 private:
-  bool nvboard_ = false;
+  nvboard::Board *board_ = nullptr;
 };
 
 // VGA framebuffer at kVgaBase (0x21000000), kVgaSize (2 MiB).
@@ -69,7 +71,7 @@ private:
 class VgaDevice : public abstract_device_t {
 public:
   VgaDevice();
-  void set_nvboard(bool enabled);
+  void set_board(nvboard::Board *board);
 
   bool load(reg_t addr, size_t len, uint8_t *bytes) override;
   bool store(reg_t addr, size_t len, const uint8_t *bytes) override;
@@ -80,7 +82,7 @@ private:
   static constexpr uint64_t kCtlOffset = 0x1FFF00;
   static constexpr uint64_t kSyncOffset = 0x1FFF04;
 
-  bool nvboard_ = false;
+  nvboard::Board *board_ = nullptr;
   int screen_width_ = kDefaultScreenWidth;
   int screen_height_ = kDefaultScreenHeight;
   bool sync_pending_ = false;

@@ -2,8 +2,6 @@
 
 #include <cstring>
 
-#include <nvboard.h>
-
 namespace nnemu {
 
 bool KeyboardDevice::load(reg_t addr, size_t len, uint8_t *bytes) {
@@ -12,13 +10,14 @@ bool KeyboardDevice::load(reg_t addr, size_t len, uint8_t *bytes) {
     return true;
 
   uint8_t sc = 0;
-  if (nvboard_ && nvboard_kbd_available()) {
-    sc = nvboard_kbd_dequeue();
+  if (board_ && board_->kbd().Available()) {
+    sc = board_->kbd().Dequeue();
   }
   bytes[0] = sc;
   return true;
 }
 
+// ignore
 bool KeyboardDevice::store(reg_t /*addr*/, size_t /*len*/,
                            const uint8_t * /*bytes*/) {
   return true;

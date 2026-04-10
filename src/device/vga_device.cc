@@ -2,18 +2,15 @@
 
 #include <cstring>
 
-#include <nvboard.h>
-
 namespace nnemu {
 
-VgaDevice::VgaDevice()
-    : framebuffer_(screen_width_ * screen_height_, 0) {}
+VgaDevice::VgaDevice() : framebuffer_(screen_width_ * screen_height_, 0) {}
 
-void VgaDevice::set_nvboard(bool enabled) {
-  nvboard_ = enabled;
-  if (nvboard_) {
-    nvboard_vga_set_framebuffer(framebuffer_.data(), screen_width_,
-                                screen_height_);
+void VgaDevice::set_board(nvboard::Board *board) {
+  board_ = board;
+  if (board_) {
+    board_->vga().SetFramebuffer(framebuffer_.data(), screen_width_,
+                                 screen_height_);
   }
 }
 
@@ -48,8 +45,8 @@ bool VgaDevice::store(reg_t addr, size_t len, const uint8_t *bytes) {
     std::memcpy(&val, bytes, 4);
     if (val != 0) {
       sync_pending_ = true;
-      if (nvboard_) {
-        nvboard_vga_sync();
+      if (board_) {
+        board_->vga().Sync();
       }
     }
     return true;

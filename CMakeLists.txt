@@ -20,16 +20,15 @@ if(NOT DEFINED ENV{SPIKE_HOME})
 endif()
 set(SPIKE_HOME $ENV{SPIKE_HOME})
 
-# --- NVBoard ---
+# --- NVBoard (CMake config package) ---
 if(NOT DEFINED ENV{NVBOARD_HOME})
   message(FATAL_ERROR "NVBOARD_HOME environment variable is not set")
 endif()
 set(NVBOARD_HOME $ENV{NVBOARD_HOME})
-
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(SDL2 REQUIRED IMPORTED_TARGET sdl2)
-pkg_check_modules(SDL2_IMAGE REQUIRED IMPORTED_TARGET SDL2_image)
-pkg_check_modules(SDL2_TTF REQUIRED IMPORTED_TARGET SDL2_ttf)
+find_package(nvboard REQUIRED CONFIG
+  PATHS "${NVBOARD_HOME}/lib/cmake/nvboard"
+  NO_DEFAULT_PATH
+)
 
 # --- Sources ---
 file(GLOB_RECURSE SOURCES src/*.cc)
@@ -40,7 +39,6 @@ target_include_directories(nemu PRIVATE
   ${SPIKE_HOME}/include
   ${SPIKE_HOME}/include/riscv
   ${SPIKE_HOME}/include/softfloat
-  ${NVBOARD_HOME}/usr/include
 )
 target_compile_options(nemu PRIVATE "-isystem${ABSL_INCLUDE_DIR}")
 
@@ -57,10 +55,7 @@ target_link_libraries(nemu PRIVATE
   disasm
   fdt
   softfloat
-  ${NVBOARD_HOME}/lib/libnvboard.a
-  PkgConfig::SDL2
-  PkgConfig::SDL2_IMAGE
-  PkgConfig::SDL2_TTF
+  nvboard::nvboard
 )
 
 if(APPLE)

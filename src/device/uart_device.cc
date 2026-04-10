@@ -3,8 +3,6 @@
 #include <cstdio>
 #include <cstring>
 
-#include <nvboard.h>
-
 namespace nnemu {
 
 // 16550 register offsets
@@ -35,8 +33,8 @@ bool UartDevice::load(reg_t addr, size_t len, uint8_t *bytes) {
     if (lcr_ & kLCR_DLAB) {
       val = dll_;
     } else {
-      if (nvboard_ && nvboard_uart_available()) {
-        val = nvboard_uart_getchar();
+      if (board_ && board_->uart().Available()) {
+        val = board_->uart().Getchar();
       }
     }
     break;
@@ -51,7 +49,7 @@ bool UartDevice::load(reg_t addr, size_t len, uint8_t *bytes) {
     break;
   case kLSR: {
     val = kLSR_THRE | kLSR_TEMT;
-    if (nvboard_ && nvboard_uart_available()) {
+    if (board_ && board_->uart().Available()) {
       val |= kLSR_DR;
     }
     break;
@@ -74,8 +72,8 @@ bool UartDevice::store(reg_t addr, size_t len, const uint8_t *bytes) {
     if (lcr_ & kLCR_DLAB) {
       dll_ = val;
     } else {
-      if (nvboard_) {
-        nvboard_uart_putchar(val);
+      if (board_) {
+        board_->uart().Putchar(val);
       }
       std::putchar(static_cast<char>(val));
       std::fflush(stdout);
