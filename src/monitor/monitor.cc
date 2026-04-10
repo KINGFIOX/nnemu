@@ -15,7 +15,7 @@
 
 namespace nnemu {
 
-Monitor::Monitor(const Config& config) : config_(config) {}
+Monitor::Monitor(const Config &config) : config_(config) {}
 
 Monitor::~Monitor() {
   if (nvboard_active_) {
@@ -32,6 +32,11 @@ int Monitor::Run() {
     LOG(INFO) << "NVBoard initialized.";
   }
 
+  uart_device_.set_nvboard(config_.nvboard);
+  gpio_device_.set_nvboard(config_.nvboard);
+  keyboard_device_.set_nvboard(config_.nvboard);
+  vga_device_.set_nvboard(config_.nvboard);
+
   InitSpike();
   LoadImage();
   MainLoop();
@@ -40,15 +45,25 @@ int Monitor::Run() {
 
 void Monitor::InitSpike() {
   constexpr size_t kAlignMask = 0xFFF;
-  size_t aligned = (kPmemSize + kAlignMask) & ~kAlignMask;
-  pmem_ = new mem_t(aligned);
+  auto align = [](size_t sz) -> size_t {
+    return (sz + 0xFFF) & ~static_cast<size_t>(0xFFF);
+  };
 
-  std::vector<std::pair<reg_t, mem_t*>> mems;
-  mems.emplace_back(reg_t(kPmemBase), pmem_);
+  flash_ = new mem_t(align(kFlashSize));
+  sram_ = new mem_t(align(kSramSize));
+  sdram_ = new mem_t(align(kSdramSize));
 
-  std::vector<std::pair<reg_t, abstract_device_t*>> plugin_devices;
-  plugin_devices.emplace_back(reg_t(kSerialPort), &serial_device_);
-  plugin_devices.emplace_back(reg_t(kDeviceBase), &sim_device_);
+  std::vector<std::pair<reg_t, mem_t *>> mems;
+  mems.emplace_back(reg_t(kFlashBase), flash_);
+  mems.emplace_back(reg_t(kSramBase), sram_);
+  mems.emplace_back(reg_t(kSdramBase), sdram_);
+
+  std::vector<std::pair<reg_t, abstract_device_t *>> plugin_devices;
+  plugin_devices.emplace_back(reg_t(kClintBase), &clint_device_);
+  plugin_devices.emplace_back(reg_t(kUartBase), &uart_device_);
+  plugin_devices.emplace_back(reg_t(kGpioBase), &gpio_device_);
+  plugin_devices.emplace_back(reg_t(kKeyboardBase), &keyboard_device_);
+  plugin_devices.emplace_back(reg_t(kVgaBase), &vga_device_);
 
   static debug_module_config_t dm_config = {
       .progbufsize = 2,
@@ -79,13 +94,13 @@ void Monitor::InitSpike() {
   std::vector<std::string> htif_args{""};
 
   sim_ = new sim_t(cfg_, /*halted=*/false, mems, plugin_devices, htif_args,
-                    dm_config, /*log_path=*/nullptr,
-                    /*dtb_enabled=*/false, /*dtb_file=*/nullptr,
-                    /*socket_enabled=*/false, /*cmd_file=*/nullptr,
-                    /*is_diff_ref=*/true);
+                   dm_config, /*log_path=*/nullptr,
+                   /*dtb_enabled=*/false, /*dtb_file=*/nullptr,
+                   /*socket_enabled=*/false, /*cmd_file=*/nullptr,
+                   /*is_diff_ref=*/true);
 
   proc_ = sim_->get_core(0);
-  proc_->get_state()->pc = kPmemBase;
+  proc_->get_state()->pc = kResetVector;
   LOG(INFO) << "Spike initialized (rv64im_zicsr).";
 }
 
@@ -100,13 +115,13 @@ void Monitor::LoadImage() {
   file.seekg(0);
 
   std::vector<uint8_t> buf(size);
-  file.read(reinterpret_cast<char*>(buf.data()), size);
+  file.read(reinterpret_cast<char *>(buf.data()), size);
 
-  // mem_t uses sparse page storage; must write page-by-page.
+  // Load into flash (all LMA sections are in flash for npc-linker.ld images).
   constexpr size_t kPageSize = 4096;
   for (size_t offset = 0; offset < buf.size(); offset += kPageSize) {
     size_t chunk = std::min(kPageSize, buf.size() - offset);
-    char* page = pmem_->contents(offset);
+    char *page = flash_->contents(offset);
     std::memcpy(page, buf.data() + offset, chunk);
   }
 
@@ -114,21 +129,35 @@ void Monitor::LoadImage() {
             << " bytes)";
 }
 
+char *Monitor::AddrToHost(uint64_t paddr) {
+  if (paddr >= kFlashBase && paddr < kFlashBase + kFlashSize) {
+    return flash_->contents(paddr - kFlashBase);
+  }
+  if (paddr >= kSramBase && paddr < kSramBase + kSramSize) {
+    return sram_->contents(paddr - kSramBase);
+  }
+  if (paddr >= kSdramBase && paddr < kSdramBase + kSdramSize) {
+    return sdram_->contents(paddr - kSdramBase);
+  }
+  return nullptr;
+}
+
 void Monitor::Step(uint64_t n) {
   for (uint64_t i = 0; i < n && state_ == CpuState::kRunning; ++i) {
     uint64_t pc = proc_->get_state()->pc;
 
-    if (pc < kPmemBase || pc >= kPmemBase + pmem_->size()) {
-      LOG(ERROR) << "PC out of pmem range: 0x" << std::hex << pc;
+    char *host_pc = AddrToHost(pc);
+    if (!host_pc) {
+      LOG(ERROR) << "PC out of memory range: 0x" << std::hex << pc;
       state_ = CpuState::kAborted;
       return;
     }
 
     uint32_t insn = 0;
-    std::memcpy(&insn, pmem_->contents(pc - kPmemBase), sizeof(insn));
+    std::memcpy(&insn, host_pc, sizeof(insn));
 
     if (insn == kEbreakInsn) {
-      exit_code_ = static_cast<int>(proc_->get_state()->XPR[10]);  // a0
+      exit_code_ = static_cast<int>(proc_->get_state()->XPR[10]); // a0
       state_ = CpuState::kStopped;
       return;
     }
@@ -167,4 +196,4 @@ void Monitor::MainLoop() {
   }
 }
 
-}  // namespace nnemu
+} // namespace nnemu

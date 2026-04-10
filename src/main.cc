@@ -15,7 +15,7 @@ ABSL_FLAG(bool, nvboard, false, "use NVBoard simulation board");
 ABSL_FLAG(std::string, log, "", "write log to specified file");
 ABSL_FLAG(std::string, image, "", "RISC-V image file path (.bin)");
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   absl::SetProgramUsageMessage(
       "nnemu -- RISC-V simulator (spike + nvboard)\n"
       "  --image <path>   RISC-V image file path (.bin) [required]\n"

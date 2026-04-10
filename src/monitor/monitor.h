@@ -20,7 +20,7 @@ enum class CpuState {
 };
 
 class Monitor {
- public:
+public:
   struct Config {
     bool batch = false;
     bool nvboard = false;
@@ -28,31 +28,42 @@ class Monitor {
     std::string image_path;
   };
 
-  explicit Monitor(const Config& config);
+  explicit Monitor(const Config &config);
   ~Monitor();
 
-  Monitor(const Monitor&) = delete;
-  Monitor& operator=(const Monitor&) = delete;
+  Monitor(const Monitor &) = delete;
+  Monitor &operator=(const Monitor &) = delete;
 
   int Run();
 
- private:
+private:
   void InitSpike();
   void LoadImage();
   void MainLoop();
   void Step(uint64_t n);
 
+  // Returns a pointer into the appropriate mem_t for the given physical addr,
+  // or nullptr if the address is not in any memory region.
+  char *AddrToHost(uint64_t paddr);
+
   Config config_;
 
   // Spike instances (owned)
-  sim_t* sim_ = nullptr;
-  cfg_t* cfg_ = nullptr;
-  processor_t* proc_ = nullptr;
-  mem_t* pmem_ = nullptr;
+  sim_t *sim_ = nullptr;
+  cfg_t *cfg_ = nullptr;
+  processor_t *proc_ = nullptr;
+
+  // Memory regions
+  mem_t *flash_ = nullptr;
+  mem_t *sram_ = nullptr;
+  mem_t *sdram_ = nullptr;
 
   // Devices
-  SerialDevice serial_device_;
-  SimDevice sim_device_;
+  UartDevice uart_device_;
+  GpioDevice gpio_device_;
+  KeyboardDevice keyboard_device_;
+  VgaDevice vga_device_;
+  ClintDevice clint_device_;
 
   // State
   CpuState state_ = CpuState::kRunning;
@@ -60,6 +71,6 @@ class Monitor {
   bool nvboard_active_ = false;
 };
 
-}  // namespace nnemu
+} // namespace nnemu
 
-#endif  // NNEMU_MONITOR_MONITOR_H_
+#endif // NNEMU_MONITOR_MONITOR_H_
