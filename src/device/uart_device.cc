@@ -1,7 +1,7 @@
-#include "device/device.h"
-
 #include <cstdio>
 #include <cstring>
+
+#include "device/device.h"
 
 namespace nemu {
 
@@ -30,7 +30,7 @@ bool UartDevice::wants_interrupt() const {
   return (ier_ & kIER_RDI) && has_rx_data();
 }
 
-bool UartDevice::load(reg_t addr, size_t len, uint8_t *bytes) {
+bool UartDevice::load(reg_t addr, size_t len, uint8_t* bytes) {
   std::memset(bytes, 0, len);
   if (len == 0) return true;
 
@@ -69,7 +69,7 @@ bool UartDevice::load(reg_t addr, size_t len, uint8_t *bytes) {
   return true;
 }
 
-bool UartDevice::store(reg_t addr, size_t len, const uint8_t *bytes) {
+bool UartDevice::store(reg_t addr, size_t len, const uint8_t* bytes) {
   if (len == 0) return true;
 
   uint8_t val = bytes[0];

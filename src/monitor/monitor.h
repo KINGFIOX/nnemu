@@ -67,8 +67,6 @@ class Monitor {
   void StepOne();
   void DumpTraces() const;
 
-  void set_external_interrupt(bool val);
-
  private:
   void InitSpike();
   void LoadImage();
@@ -90,13 +88,11 @@ class Monitor {
   // NVBoard
   std::unique_ptr<nvboard::Board> board_;
 
-  // Devices
+  // Devices (CLINT and PLIC are Spike-internal, see sim_t)
   UartDevice uart_device_;
   GpioDevice gpio_device_;
   KeyboardDevice keyboard_device_;
   VgaDevice vga_device_;
-  ClintDevice clint_device_;
-  PlicDevice plic_device_;
 
   // Trace
   RingBuf<ITraceEntry> itrace_{kITraceCapacity};

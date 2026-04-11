@@ -24,12 +24,7 @@ inline constexpr uint64_t kKeyboardBase = 0x10011000;
 inline constexpr uint64_t kKeyboardSize = 0x8;
 inline constexpr uint64_t kVgaBase = 0x21000000;
 inline constexpr uint64_t kVgaSize = 0x200000; // 2 MiB
-inline constexpr uint64_t kClintBase = 0x02000000;
-inline constexpr uint64_t kClintSize = 0x10000;
-
-inline constexpr uint64_t kPlicBase = 0x0c000000;
-inline constexpr uint64_t kPlicSize = 0x400000;
-
+// PLIC IRQ IDs (must match Spike platform.h PLIC_NDEV range)
 inline constexpr int kUartIrq = 10;
 inline constexpr int kKeyboardIrq = 12;
 

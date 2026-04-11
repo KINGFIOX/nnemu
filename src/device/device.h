@@ -1,7 +1,6 @@
 #ifndef NEMU_DEVICE_DEVICE_H_
 #define NEMU_DEVICE_DEVICE_H_
 
-#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -94,51 +93,6 @@ private:
   int screen_height_ = kDefaultScreenHeight;
   bool sync_pending_ = false;
   std::vector<uint32_t> framebuffer_;
-};
-
-// CLINT at kClintBase (0x02000000), kClintSize (64 KiB).
-// Offsets:
-//   0x0000: msip
-//   0x4000: mtimecmp (lo32), 0x4004: mtimecmp (hi32)
-//   0xBFF8: mtime (lo32), 0xBFFC: mtime (hi32) -- microseconds
-class ClintDevice : public abstract_device_t {
- public:
-  ClintDevice();
-
-  bool load(reg_t addr, size_t len, uint8_t *bytes) override;
-  bool store(reg_t addr, size_t len, const uint8_t *bytes) override;
-
- private:
-  std::chrono::steady_clock::time_point boot_time_;
-  uint32_t msip_ = 0;
-  uint64_t mtimecmp_ = 0;
-};
-
-// PLIC at kPlicBase (0x0c000000), kPlicSize (0x400000).
-// Implements S-mode external interrupt routing for up to 64 IRQ sources.
-class PlicDevice : public abstract_device_t {
- public:
-  PlicDevice() = default;
-
-  bool load(reg_t addr, size_t len, uint8_t *bytes) override;
-  bool store(reg_t addr, size_t len, const uint8_t *bytes) override;
-
-  void raise_irq(int irq);
-  void clear_irq(int irq);
-  bool has_pending() const;
-
- private:
-  static constexpr int kMaxIrqs = 64;
-  static constexpr int kMaxHarts = 8;
-
-  uint32_t priority_[kMaxIrqs] = {};
-  uint64_t pending_ = 0;
-  uint64_t claimed_ = 0;
-  uint64_t s_enable_[kMaxHarts] = {};
-  uint32_t s_threshold_[kMaxHarts] = {};
-
-  int claim(int hart);
-  void complete(int hart, int irq);
 };
 
 }  // namespace nemu

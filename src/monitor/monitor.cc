@@ -12,7 +12,6 @@
 #include "absl/log/log.h"
 #include "common.h"
 #include "disasm.h"
-#include "encoding.h"
 #include "isa_parser.h"
 #include "processor.h"
 #include "sim.h"
@@ -132,12 +131,10 @@ void Monitor::InitSpike() {
   mems.emplace_back(reg_t(kSdramBase), sdram_);
 
   std::vector<std::pair<reg_t, abstract_device_t *>> plugin_devices;
-  plugin_devices.emplace_back(reg_t(kClintBase), &clint_device_);
   plugin_devices.emplace_back(reg_t(kUartBase), &uart_device_);
   plugin_devices.emplace_back(reg_t(kGpioBase), &gpio_device_);
   plugin_devices.emplace_back(reg_t(kKeyboardBase), &keyboard_device_);
   plugin_devices.emplace_back(reg_t(kVgaBase), &vga_device_);
-  plugin_devices.emplace_back(reg_t(kPlicBase), &plic_device_);
 
   debug_module_config_t dm_config = {
       .progbufsize = 2,
@@ -170,7 +167,7 @@ void Monitor::InitSpike() {
 
   sim_ = std::make_unique<sim_t>(&cfg, /*halted=*/false, mems, plugin_devices,
                                  htif_args, dm_config, /*log_path=*/nullptr,
-                                 /*dtb_enabled=*/false, /*dtb_file=*/nullptr,
+                                 /*dtb_enabled=*/true, /*dtb_file=*/nullptr,
                                  /*socket_enabled=*/false, /*cmd_file=*/nullptr,
                                  /*is_diff_ref=*/true);
 
@@ -364,18 +361,23 @@ void Monitor::StepOne() {
     }
   }
 
-  // Check device interrupts -> PLIC
-  if (uart_device_.wants_interrupt()) {
-    plic_device_.raise_irq(kUartIrq);
+  // Tick CLINT (advance mtime) — Spike's sim_t::step() does this every
+  // INTERLEAVE instructions, but we call processor_t::step() directly,
+  // so we must drive the CLINT ourselves.
+  if (auto *clint = sim_->get_clint()) {
+    clint->increment(1);
   }
 
-  board_->Update();
-  if (keyboard_device_.has_pending_data()) {
-    plic_device_.raise_irq(kKeyboardIrq);
-  }
+  // Drive device interrupt levels into Spike's PLIC
+  if (auto *plic = sim_->get_plic()) {
+    plic->set_interrupt_level(kUartIrq, uart_device_.wants_interrupt() ? 1 : 0);
 
-  // PLIC -> CPU external interrupt
-  set_external_interrupt(plic_device_.has_pending());
+    board_->Update();
+    plic->set_interrupt_level(kKeyboardIrq,
+                              keyboard_device_.has_pending_data() ? 1 : 0);
+  } else {
+    board_->Update();
+  }
 }
 
 void Monitor::Step(uint64_t n) {
@@ -393,15 +395,6 @@ void Monitor::DumpTraces() const {
     LOG(INFO) << "=== FTrace (last " << ftrace_->ring_buf.size()
               << " calls) ===\n"
               << ftrace_->ring_buf.dump();
-  }
-}
-
-void Monitor::set_external_interrupt(bool val) {
-  auto mip = core()->get_state()->mip;
-  if (val) {
-    mip->backdoor_write_with_mask(MIP_SEIP, MIP_SEIP);
-  } else {
-    mip->backdoor_write_with_mask(MIP_SEIP, 0);
   }
 }
 
