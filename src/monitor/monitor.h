@@ -38,7 +38,6 @@ class Monitor {
  public:
   struct Config {
     bool batch = false;
-    bool nvboard = false;
     std::string log_file;
     std::string image_path;
     std::string elf_path;

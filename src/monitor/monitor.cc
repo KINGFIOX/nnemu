@@ -91,10 +91,8 @@ std::optional<uint64_t> Monitor::reg_value(const std::string &name) const {
 }
 
 int Monitor::Run() {
-  if (config_.nvboard) {
-    board_ = nvboard::Board::Create();
-    LOG(INFO) << "NVBoard initialized.";
-  }
+  board_ = nvboard::Board::Create();
+  LOG(INFO) << "NVBoard initialized.";
 
   nvboard::Board *bp = board_.get();
   uart_device_.set_board(bp);
@@ -371,11 +369,9 @@ void Monitor::StepOne() {
     plic_device_.raise_irq(kUartIrq);
   }
 
-  if (board_) {
-    board_->Update();
-    if (keyboard_device_.has_pending_data()) {
-      plic_device_.raise_irq(kKeyboardIrq);
-    }
+  board_->Update();
+  if (keyboard_device_.has_pending_data()) {
+    plic_device_.raise_irq(kKeyboardIrq);
   }
 
   // PLIC -> CPU external interrupt

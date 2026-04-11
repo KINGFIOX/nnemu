@@ -34,8 +34,6 @@ class UartDevice : public abstract_device_t {
   uint8_t dll_ = 1;
   uint8_t dlm_ = 0;
   uint8_t fcr_ = 0;
-  uint8_t stdin_char_ = 0;
-  bool has_stdin_char_ = false;
 };
 
 // GPIO at kGpioBase (0x10002000), 16 bytes.

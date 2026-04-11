@@ -11,7 +11,6 @@
 #include "absl/log/log.h"
 
 ABSL_FLAG(bool, batch, false, "run with batch mode");
-ABSL_FLAG(bool, nvboard, false, "use NVBoard simulation board");
 ABSL_FLAG(std::string, log, "", "write log to specified file");
 ABSL_FLAG(std::string, image, "", "RISC-V raw binary image file path (.bin)");
 ABSL_FLAG(std::string, elf, "", "RISC-V ELF file path (loads to vaddr)");
@@ -22,7 +21,6 @@ int main(int argc, char *argv[]) {
       "  --image <path>   RISC-V raw binary image (.bin) [loaded to flash]\n"
       "  --elf <path>     RISC-V ELF file [loaded to vaddr, e.g. xv6]\n"
       "  --batch          run with batch mode (no SDB)\n"
-      "  --nvboard        use NVBoard simulation board\n"
       "  --log <path>     write log to specified file");
 
   absl::ParseCommandLine(argc, argv);
@@ -39,7 +37,6 @@ int main(int argc, char *argv[]) {
 
   nemu::Monitor::Config config{
       .batch = absl::GetFlag(FLAGS_batch),
-      .nvboard = absl::GetFlag(FLAGS_nvboard),
       .log_file = absl::GetFlag(FLAGS_log),
       .image_path = std::move(image_path),
       .elf_path = std::move(elf_path),
