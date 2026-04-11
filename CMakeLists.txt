@@ -30,6 +30,13 @@ find_package(nvboard REQUIRED CONFIG
   NO_DEFAULT_PATH
 )
 
+# --- ELFIO (header-only) ---
+find_path(ELFIO_INCLUDE_DIR elfio/elfio.hpp REQUIRED)
+
+# --- readline ---
+find_library(READLINE_LIB readline REQUIRED)
+find_path(READLINE_INCLUDE_DIR readline/readline.h REQUIRED)
+
 # --- Sources ---
 file(GLOB_RECURSE SOURCES src/*.cc)
 add_executable(nemu ${SOURCES})
@@ -39,6 +46,8 @@ target_include_directories(nemu PRIVATE
   ${SPIKE_HOME}/include
   ${SPIKE_HOME}/include/riscv
   ${SPIKE_HOME}/include/softfloat
+  ${ELFIO_INCLUDE_DIR}
+  ${READLINE_INCLUDE_DIR}
 )
 target_compile_options(nemu PRIVATE "-isystem${ABSL_INCLUDE_DIR}")
 
@@ -56,6 +65,7 @@ target_link_libraries(nemu PRIVATE
   fdt
   softfloat
   nvboard::nvboard
+  ${READLINE_LIB}
 )
 
 if(APPLE)

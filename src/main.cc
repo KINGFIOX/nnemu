@@ -13,13 +13,15 @@
 ABSL_FLAG(bool, batch, false, "run with batch mode");
 ABSL_FLAG(bool, nvboard, false, "use NVBoard simulation board");
 ABSL_FLAG(std::string, log, "", "write log to specified file");
-ABSL_FLAG(std::string, image, "", "RISC-V image file path (.bin)");
+ABSL_FLAG(std::string, image, "", "RISC-V raw binary image file path (.bin)");
+ABSL_FLAG(std::string, elf, "", "RISC-V ELF file path (loads to vaddr)");
 
 int main(int argc, char *argv[]) {
   absl::SetProgramUsageMessage(
       "nnemu -- RISC-V simulator (spike + nvboard)\n"
-      "  --image <path>   RISC-V image file path (.bin) [required]\n"
-      "  --batch          run with batch mode\n"
+      "  --image <path>   RISC-V raw binary image (.bin) [loaded to flash]\n"
+      "  --elf <path>     RISC-V ELF file [loaded to vaddr, e.g. xv6]\n"
+      "  --batch          run with batch mode (no SDB)\n"
       "  --nvboard        use NVBoard simulation board\n"
       "  --log <path>     write log to specified file");
 
@@ -28,8 +30,10 @@ int main(int argc, char *argv[]) {
   absl::SetStderrThreshold(absl::LogSeverityAtLeast::kInfo);
 
   std::string image_path = absl::GetFlag(FLAGS_image);
-  if (image_path.empty()) {
-    LOG(ERROR) << "No image file specified. Use --image <path>.";
+  std::string elf_path = absl::GetFlag(FLAGS_elf);
+
+  if (image_path.empty() && elf_path.empty()) {
+    LOG(ERROR) << "No image file specified. Use --image or --elf.";
     return 1;
   }
 
@@ -38,6 +42,7 @@ int main(int argc, char *argv[]) {
       .nvboard = absl::GetFlag(FLAGS_nvboard),
       .log_file = absl::GetFlag(FLAGS_log),
       .image_path = std::move(image_path),
+      .elf_path = std::move(elf_path),
   };
 
   nnemu::Monitor monitor(config);

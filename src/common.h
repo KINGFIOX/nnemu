@@ -27,10 +27,22 @@ inline constexpr uint64_t kVgaSize = 0x200000; // 2 MiB
 inline constexpr uint64_t kClintBase = 0x02000000;
 inline constexpr uint64_t kClintSize = 0x10000;
 
+inline constexpr uint64_t kPlicBase = 0x0c000000;
+inline constexpr uint64_t kPlicSize = 0x400000;
+
+inline constexpr int kUartIrq = 10;
+inline constexpr int kKeyboardIrq = 12;
+
 inline constexpr int kDefaultScreenWidth = 640;
 inline constexpr int kDefaultScreenHeight = 480;
 
 inline constexpr uint32_t kEbreakInsn = 0x00100073;
+
+inline constexpr const char *kGprNames[] = {
+    "$0", "ra", "sp", "gp", "tp",  "t0",  "t1", "t2", "s0", "s1", "a0",
+    "a1", "a2", "a3", "a4", "a5",  "a6",  "a7", "s2", "s3", "s4", "s5",
+    "s6", "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6",
+};
 
 } // namespace nnemu
 
