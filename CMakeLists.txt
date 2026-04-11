@@ -7,6 +7,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
 option(softfloat_pa "Use minimal softfloat for PA course" ON)
 set(default_isa "RV64IMAFDC_zicntr_zihpm" CACHE STRING "Default value for --isa switch")
 set(default_priv "MSU" CACHE STRING "Default value for --priv switch")
@@ -112,11 +115,15 @@ set(FESVR_SRCS
 )
 
 add_library(fesvr STATIC ${FESVR_SRCS})
-target_include_directories(fesvr PRIVATE
-  "${CMAKE_SOURCE_DIR}"
-  "${CMAKE_BINARY_DIR}"
-  "${CMAKE_SOURCE_DIR}/fesvr"
-  "${CMAKE_SOURCE_DIR}/riscv"
+target_include_directories(fesvr
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/fesvr>
+  PRIVATE
+    "${CMAKE_SOURCE_DIR}/fesvr"
+    "${CMAKE_SOURCE_DIR}/riscv"
 )
 apply_common_flags(fesvr)
 
@@ -143,10 +150,14 @@ set(FDT_SRCS
 )
 
 add_library(fdt STATIC ${FDT_SRCS})
-target_include_directories(fdt PRIVATE
-  "${CMAKE_SOURCE_DIR}"
-  "${CMAKE_BINARY_DIR}"
-  "${CMAKE_SOURCE_DIR}/fdt"
+target_include_directories(fdt
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/fdt>
+  PRIVATE
+    "${CMAKE_SOURCE_DIR}/fdt"
 )
 apply_common_flags(fdt)
 
@@ -381,10 +392,14 @@ else()
 endif()
 
 add_library(softfloat STATIC ${SOFTFLOAT_SRCS})
-target_include_directories(softfloat PRIVATE
-  "${CMAKE_SOURCE_DIR}"
-  "${CMAKE_BINARY_DIR}"
-  "${CMAKE_SOURCE_DIR}/softfloat"
+target_include_directories(softfloat
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/softfloat>
+  PRIVATE
+    "${CMAKE_SOURCE_DIR}/softfloat"
 )
 apply_common_flags(softfloat)
 
@@ -392,12 +407,16 @@ add_library(disasm STATIC
   disasm/disasm.cc
   disasm/regnames.cc
 )
-target_include_directories(disasm PRIVATE
-  "${CMAKE_SOURCE_DIR}"
-  "${CMAKE_BINARY_DIR}"
-  "${CMAKE_SOURCE_DIR}/disasm"
-  "${CMAKE_SOURCE_DIR}/riscv"
-  "${CMAKE_SOURCE_DIR}/softfloat"
+target_include_directories(disasm
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/disasm>
+  PRIVATE
+    "${CMAKE_SOURCE_DIR}/disasm"
+    "${CMAKE_SOURCE_DIR}/riscv"
+    "${CMAKE_SOURCE_DIR}/softfloat"
 )
 apply_common_flags(disasm)
 
@@ -430,22 +449,27 @@ set(RISCV_SRCS
 )
 
 add_library(riscv STATIC ${RISCV_SRCS})
-target_include_directories(riscv PRIVATE
-  "${CMAKE_SOURCE_DIR}"
-  "${CMAKE_BINARY_DIR}"
-  "${CMAKE_SOURCE_DIR}/fesvr"
-  "${CMAKE_SOURCE_DIR}/fdt"
-  "${CMAKE_SOURCE_DIR}/softfloat"
-  "${CMAKE_SOURCE_DIR}/disasm"
-  "${CMAKE_SOURCE_DIR}/riscv"
-  "${RISCV_GEN_DIR}"
+target_include_directories(riscv
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+    $<BUILD_INTERFACE:${RISCV_GEN_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/riscv>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/riscv_gen>
+  PRIVATE
+    "${CMAKE_SOURCE_DIR}/fesvr"
+    "${CMAKE_SOURCE_DIR}/fdt"
+    "${CMAKE_SOURCE_DIR}/softfloat"
+    "${CMAKE_SOURCE_DIR}/disasm"
+    "${CMAKE_SOURCE_DIR}/riscv"
 )
-target_link_libraries(riscv PRIVATE fesvr fdt softfloat disasm)
+target_link_libraries(riscv PUBLIC fesvr fdt softfloat disasm)
 if(Boost_FOUND)
-  target_link_libraries(riscv PRIVATE ${BOOST_LINK_LIBS})
+  target_link_libraries(riscv PUBLIC ${BOOST_LINK_LIBS})
 endif()
 if(HAVE_DLOPEN AND DL_LIB)
-  target_link_libraries(riscv PRIVATE "${DL_LIB}")
+  target_link_libraries(riscv PUBLIC "${DL_LIB}")
 endif()
 apply_common_flags(riscv)
 
@@ -522,24 +546,59 @@ target_include_directories(spike-dasm PRIVATE
 target_link_libraries(spike-dasm PRIVATE disasm softfloat riscv)
 apply_common_flags(spike-dasm)
 
-install(FILES "${CMAKE_BINARY_DIR}/config.h" DESTINATION include)
-install(DIRECTORY fesvr fdt softfloat disasm riscv spike_main customext spike_dasm DESTINATION include)
-install(DIRECTORY "${RISCV_GEN_DIR}/" DESTINATION include/riscv_gen)
+install(FILES "${CMAKE_BINARY_DIR}/config.h"
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(DIRECTORY fesvr fdt softfloat disasm riscv spike_main customext spike_dasm
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  FILES_MATCHING PATTERN "*.h"
+)
+install(DIRECTORY "${RISCV_GEN_DIR}/"
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/riscv_gen
+  FILES_MATCHING PATTERN "*.h"
+)
 
-install(TARGETS
-  fesvr
-  fdt
-  softfloat
-  disasm
-  riscv
-  customext
-  elf2hex
-  spike
-  spike-log-parser
-  xspike
-  termios-xspike
-  spike-dasm
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+install(TARGETS fesvr fdt softfloat disasm riscv
+  EXPORT spikeTargets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+install(TARGETS customext
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+install(TARGETS elf2hex spike spike-log-parser xspike termios-xspike spike-dasm
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(EXPORT spikeTargets
+  FILE spikeTargets.cmake
+  NAMESPACE spike::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/spike
+)
+
+set(spike_BOOST_FOUND ${Boost_FOUND})
+if(HAVE_DLOPEN AND DL_LIB)
+  set(spike_DLOPEN_FOUND TRUE)
+else()
+  set(spike_DLOPEN_FOUND FALSE)
+endif()
+
+configure_package_config_file(
+  "${CMAKE_SOURCE_DIR}/cmake/spikeConfig.cmake.in"
+  "${CMAKE_BINARY_DIR}/spikeConfig.cmake"
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/spike
+)
+
+write_basic_package_version_file(
+  "${CMAKE_BINARY_DIR}/spikeConfigVersion.cmake"
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+  "${CMAKE_BINARY_DIR}/spikeConfig.cmake"
+  "${CMAKE_BINARY_DIR}/spikeConfigVersion.cmake"
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/spike
 )
