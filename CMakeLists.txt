@@ -7,12 +7,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # --- abseil-cpp (provided by Nix devShell) ---
 find_package(absl REQUIRED CONFIG)
-# Make absl headers explicit in compile_commands.json for clangd.
-# In Nix envs, wrapper-provided include paths may not be visible to clangd.
-get_filename_component(ABSL_CMAKE_DIR "${absl_DIR}" DIRECTORY) # .../lib/cmake
-get_filename_component(ABSL_LIB_DIR "${ABSL_CMAKE_DIR}" DIRECTORY) # .../lib
-get_filename_component(ABSL_ROOT_DIR "${ABSL_LIB_DIR}" DIRECTORY) # prefix
-set(ABSL_INCLUDE_DIR "${ABSL_ROOT_DIR}/include")
 
 # --- Spike (riscv-isa-sim, CMake config package) ---
 find_package(spike REQUIRED CONFIG)
@@ -36,7 +30,6 @@ target_include_directories(nemu PRIVATE
   ${ELFIO_INCLUDE_DIR}
   ${READLINE_INCLUDE_DIR}
 )
-target_compile_options(nemu PRIVATE "-isystem${ABSL_INCLUDE_DIR}")
 
 target_link_libraries(nemu PRIVATE
   absl::flags
