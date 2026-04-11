@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-namespace nnemu {
+namespace nemu {
 
 ClintDevice::ClintDevice() : boot_time_(std::chrono::steady_clock::now()) {}
 
@@ -61,4 +61,4 @@ bool ClintDevice::store(reg_t addr, size_t len, const uint8_t *bytes) {
   return true;
 }
 
-} // namespace nnemu
+} // namespace nemu

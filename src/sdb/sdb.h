@@ -1,5 +1,5 @@
-#ifndef NNEMU_SDB_SDB_H_
-#define NNEMU_SDB_SDB_H_
+#ifndef NEMU_SDB_SDB_H_
+#define NEMU_SDB_SDB_H_
 
 #include <cstdint>
 #include <optional>
@@ -8,7 +8,7 @@
 
 #include "sdb/watchpoint.h"
 
-namespace nnemu {
+namespace nemu {
 
 class Monitor;
 
@@ -72,6 +72,6 @@ class Sdb {
   std::optional<std::string> last_cmd_;
 };
 
-}  // namespace nnemu
+}  // namespace nemu
 
-#endif  // NNEMU_SDB_SDB_H_
+#endif  // NEMU_SDB_SDB_H_

@@ -1,12 +1,12 @@
-#ifndef NNEMU_SDB_WATCHPOINT_H_
-#define NNEMU_SDB_WATCHPOINT_H_
+#ifndef NEMU_SDB_WATCHPOINT_H_
+#define NEMU_SDB_WATCHPOINT_H_
 
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
 
-namespace nnemu {
+namespace nemu {
 
 class Monitor;
 
@@ -31,6 +31,6 @@ class WatchpointPool {
   int next_id_ = 1;
 };
 
-}  // namespace nnemu
+}  // namespace nemu
 
-#endif  // NNEMU_SDB_WATCHPOINT_H_
+#endif  // NEMU_SDB_WATCHPOINT_H_

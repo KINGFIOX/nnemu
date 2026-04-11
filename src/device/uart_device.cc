@@ -8,7 +8,7 @@
 #include <unistd.h>
 #endif
 
-namespace nnemu {
+namespace nemu {
 
 // 16550 register offsets
 enum Reg : uint8_t {
@@ -144,4 +144,4 @@ bool UartDevice::store(reg_t addr, size_t len, const uint8_t *bytes) {
   return true;
 }
 
-}  // namespace nnemu
+}  // namespace nemu

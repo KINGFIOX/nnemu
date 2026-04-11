@@ -5,7 +5,7 @@
 #include "absl/log/log.h"
 #include "elfio/elfio.hpp"
 
-namespace nnemu {
+namespace nemu {
 
 FuncTracer::FuncTracer(const std::filesystem::path &elf_path)
     : ring_buf(kFtraceCapacity) {
@@ -61,4 +61,4 @@ void FuncTracer::push_ret(uint64_t pc, uint64_t dnpc,
   ring_buf.push(FTraceEntry(pc, dnpc, depth_, FuncType::kRet, "", disasm));
 }
 
-}  // namespace nnemu
+}  // namespace nemu

@@ -1,12 +1,12 @@
-#ifndef NNEMU_TRACER_RING_BUF_H_
-#define NNEMU_TRACER_RING_BUF_H_
+#ifndef NEMU_TRACER_RING_BUF_H_
+#define NEMU_TRACER_RING_BUF_H_
 
 #include <cstddef>
 #include <sstream>
 #include <string>
 #include <vector>
 
-namespace nnemu {
+namespace nemu {
 
 template <typename T>
 class RingBuf {
@@ -36,6 +36,6 @@ class RingBuf {
   size_t write_pos_ = 0;
 };
 
-}  // namespace nnemu
+}  // namespace nemu
 
-#endif  // NNEMU_TRACER_RING_BUF_H_
+#endif  // NEMU_TRACER_RING_BUF_H_

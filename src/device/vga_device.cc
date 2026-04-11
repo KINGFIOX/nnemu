@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-namespace nnemu {
+namespace nemu {
 
 VgaDevice::VgaDevice() : framebuffer_(screen_width_ * screen_height_, 0) {}
 
@@ -65,4 +65,4 @@ bool VgaDevice::store(reg_t addr, size_t len, const uint8_t *bytes) {
   return true;
 }
 
-} // namespace nnemu
+} // namespace nemu

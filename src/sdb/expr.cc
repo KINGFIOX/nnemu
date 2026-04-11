@@ -5,7 +5,7 @@
 
 #include "monitor/monitor.h"
 
-namespace nnemu {
+namespace nemu {
 namespace {
 
 class ExprParser {
@@ -282,4 +282,4 @@ std::optional<uint64_t> ExprEval(const std::string &expr,
   return result;
 }
 
-}  // namespace nnemu
+}  // namespace nemu

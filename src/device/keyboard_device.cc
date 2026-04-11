@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-namespace nnemu {
+namespace nemu {
 
 bool KeyboardDevice::load(reg_t addr, size_t len, uint8_t *bytes) {
   std::memset(bytes, 0, len);
@@ -23,4 +23,4 @@ bool KeyboardDevice::store(reg_t /*addr*/, size_t /*len*/,
   return true;
 }
 
-} // namespace nnemu
+} // namespace nemu

@@ -18,7 +18,7 @@ ABSL_FLAG(std::string, elf, "", "RISC-V ELF file path (loads to vaddr)");
 
 int main(int argc, char *argv[]) {
   absl::SetProgramUsageMessage(
-      "nnemu -- RISC-V simulator (spike + nvboard)\n"
+      "nemu -- RISC-V simulator (spike + nvboard)\n"
       "  --image <path>   RISC-V raw binary image (.bin) [loaded to flash]\n"
       "  --elf <path>     RISC-V ELF file [loaded to vaddr, e.g. xv6]\n"
       "  --batch          run with batch mode (no SDB)\n"
@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  nnemu::Monitor::Config config{
+  nemu::Monitor::Config config{
       .batch = absl::GetFlag(FLAGS_batch),
       .nvboard = absl::GetFlag(FLAGS_nvboard),
       .log_file = absl::GetFlag(FLAGS_log),
@@ -45,6 +45,6 @@ int main(int argc, char *argv[]) {
       .elf_path = std::move(elf_path),
   };
 
-  nnemu::Monitor monitor(config);
+  nemu::Monitor monitor(config);
   return monitor.Run();
 }

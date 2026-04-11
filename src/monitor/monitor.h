@@ -1,5 +1,5 @@
-#ifndef NNEMU_MONITOR_MONITOR_H_
-#define NNEMU_MONITOR_MONITOR_H_
+#ifndef NEMU_MONITOR_MONITOR_H_
+#define NEMU_MONITOR_MONITOR_H_
 
 #include <cstdint>
 #include <memory>
@@ -21,7 +21,7 @@ class disassembler_t;
 class isa_parser_t;
 struct cfg_t;
 
-namespace nnemu {
+namespace nemu {
 
 class Sdb;
 
@@ -115,6 +115,6 @@ class Monitor {
   int exit_code_ = 0;
 };
 
-}  // namespace nnemu
+}  // namespace nemu
 
-#endif  // NNEMU_MONITOR_MONITOR_H_
+#endif  // NEMU_MONITOR_MONITOR_H_

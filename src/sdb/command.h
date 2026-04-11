@@ -1,12 +1,12 @@
-#ifndef NNEMU_SDB_COMMAND_H_
-#define NNEMU_SDB_COMMAND_H_
+#ifndef NEMU_SDB_COMMAND_H_
+#define NEMU_SDB_COMMAND_H_
 
 #include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
 
-namespace nnemu {
+namespace nemu {
 
 struct Command {
   std::string name;
@@ -15,6 +15,6 @@ struct Command {
 
 std::optional<Command> ParseCommand(absl::string_view input);
 
-}  // namespace nnemu
+}  // namespace nemu
 
-#endif  // NNEMU_SDB_COMMAND_H_
+#endif  // NEMU_SDB_COMMAND_H_

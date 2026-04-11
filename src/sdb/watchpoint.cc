@@ -4,7 +4,7 @@
 
 #include "sdb/expr.h"
 
-namespace nnemu {
+namespace nemu {
 
 std::optional<int> WatchpointPool::add(const std::string &expr,
                                        const Monitor &monitor) {
@@ -56,4 +56,4 @@ void WatchpointPool::list(std::string &out) const {
   }
 }
 
-}  // namespace nnemu
+}  // namespace nemu

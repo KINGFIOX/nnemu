@@ -1,5 +1,5 @@
-#ifndef NNEMU_TRACER_FTRACE_H_
-#define NNEMU_TRACER_FTRACE_H_
+#ifndef NEMU_TRACER_FTRACE_H_
+#define NEMU_TRACER_FTRACE_H_
 
 #include <cstdint>
 #include <filesystem>
@@ -10,7 +10,7 @@
 
 #include "tracer/ring_buf.h"
 
-namespace nnemu {
+namespace nemu {
 
 inline constexpr size_t kFtraceCapacity = 32;
 
@@ -64,6 +64,6 @@ class FuncTracer {
   uint32_t depth_ = 0;
 };
 
-}  // namespace nnemu
+}  // namespace nemu
 
-#endif  // NNEMU_TRACER_FTRACE_H_
+#endif  // NEMU_TRACER_FTRACE_H_

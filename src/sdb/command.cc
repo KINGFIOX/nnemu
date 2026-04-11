@@ -2,7 +2,7 @@
 
 #include "absl/strings/ascii.h"
 
-namespace nnemu {
+namespace nemu {
 
 std::optional<Command> ParseCommand(absl::string_view input) {
   absl::string_view trimmed = absl::StripAsciiWhitespace(input);
@@ -19,4 +19,4 @@ std::optional<Command> ParseCommand(absl::string_view input) {
   return Command{std::move(name), std::move(args)};
 }
 
-}  // namespace nnemu
+}  // namespace nemu

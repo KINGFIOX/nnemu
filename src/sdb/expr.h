@@ -1,11 +1,11 @@
-#ifndef NNEMU_SDB_EXPR_H_
-#define NNEMU_SDB_EXPR_H_
+#ifndef NEMU_SDB_EXPR_H_
+#define NEMU_SDB_EXPR_H_
 
 #include <cstdint>
 #include <optional>
 #include <string>
 
-namespace nnemu {
+namespace nemu {
 
 class Monitor;
 
@@ -13,6 +13,6 @@ std::optional<uint64_t> ExprEval(const std::string &expr,
                                  const Monitor &monitor,
                                  std::string *err_msg = nullptr);
 
-}  // namespace nnemu
+}  // namespace nemu
 
-#endif  // NNEMU_SDB_EXPR_H_
+#endif  // NEMU_SDB_EXPR_H_

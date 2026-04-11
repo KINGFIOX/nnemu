@@ -1,5 +1,5 @@
-#ifndef NNEMU_DEVICE_DEVICE_H_
-#define NNEMU_DEVICE_DEVICE_H_
+#ifndef NEMU_DEVICE_DEVICE_H_
+#define NEMU_DEVICE_DEVICE_H_
 
 #include <chrono>
 #include <cstdint>
@@ -11,7 +11,7 @@
 #include "abstract_device.h"
 #include "common.h"
 
-namespace nnemu {
+namespace nemu {
 
 // UART 16550 at kUartBase (0x10000000).
 // Implements THR/RBR/LSR/LCR/DLL/DLM/FCR/IER registers.
@@ -143,6 +143,6 @@ class PlicDevice : public abstract_device_t {
   void complete(int hart, int irq);
 };
 
-}  // namespace nnemu
+}  // namespace nemu
 
-#endif  // NNEMU_DEVICE_DEVICE_H_
+#endif  // NEMU_DEVICE_DEVICE_H_

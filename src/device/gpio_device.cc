@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-namespace nnemu {
+namespace nemu {
 
 bool GpioDevice::load(reg_t addr, size_t len, uint8_t *bytes) {
   std::memset(bytes, 0, len);
@@ -37,4 +37,4 @@ bool GpioDevice::store(reg_t addr, size_t len, const uint8_t *bytes) {
   return true;
 }
 
-} // namespace nnemu
+} // namespace nemu

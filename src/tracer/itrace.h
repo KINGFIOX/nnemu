@@ -1,12 +1,12 @@
-#ifndef NNEMU_TRACER_ITRACE_H_
-#define NNEMU_TRACER_ITRACE_H_
+#ifndef NEMU_TRACER_ITRACE_H_
+#define NEMU_TRACER_ITRACE_H_
 
 #include <cstdint>
 #include <iomanip>
 #include <ostream>
 #include <string>
 
-namespace nnemu {
+namespace nemu {
 
 struct ITraceEntry {
   uint64_t pc = 0;
@@ -26,6 +26,6 @@ struct ITraceEntry {
   }
 };
 
-}  // namespace nnemu
+}  // namespace nemu
 
-#endif  // NNEMU_TRACER_ITRACE_H_
+#endif  // NEMU_TRACER_ITRACE_H_

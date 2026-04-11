@@ -18,7 +18,7 @@
 #include "sim.h"
 #include "sdb/sdb.h"
 
-namespace nnemu {
+namespace nemu {
 
 Monitor::Monitor(const Config &config) : config_(config) {}
 
@@ -434,4 +434,4 @@ void Monitor::MainLoop() {
   }
 }
 
-}  // namespace nnemu
+}  // namespace nemu

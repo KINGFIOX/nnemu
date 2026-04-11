@@ -1,11 +1,11 @@
-#ifndef NNEMU_TRACER_DTRACE_H_
-#define NNEMU_TRACER_DTRACE_H_
+#ifndef NEMU_TRACER_DTRACE_H_
+#define NEMU_TRACER_DTRACE_H_
 
 #include <cstdint>
 #include <iomanip>
 #include <ostream>
 
-namespace nnemu {
+namespace nemu {
 
 enum class MemDir { kRead, kWrite };
 
@@ -29,6 +29,6 @@ struct DTraceEntry {
   }
 };
 
-}  // namespace nnemu
+}  // namespace nemu
 
-#endif  // NNEMU_TRACER_DTRACE_H_
+#endif  // NEMU_TRACER_DTRACE_H_

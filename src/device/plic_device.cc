@@ -3,7 +3,7 @@
 #include "absl/log/log.h"
 #include "device/device.h"
 
-namespace nnemu {
+namespace nemu {
 
 // PLIC register layout (base = 0x0c000000):
 //   0x000000 + irq*4      : priority[irq]       (1 word per IRQ)
@@ -169,4 +169,4 @@ void PlicDevice::complete(int hart, int irq) {
   }
 }
 
-}  // namespace nnemu
+}  // namespace nemu

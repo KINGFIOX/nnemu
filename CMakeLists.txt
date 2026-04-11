@@ -9,26 +9,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(absl REQUIRED CONFIG)
 # Make absl headers explicit in compile_commands.json for clangd.
 # In Nix envs, wrapper-provided include paths may not be visible to clangd.
-get_filename_component(ABSL_CMAKE_DIR "${absl_DIR}" DIRECTORY)      # .../lib/cmake
-get_filename_component(ABSL_LIB_DIR "${ABSL_CMAKE_DIR}" DIRECTORY)  # .../lib
-get_filename_component(ABSL_ROOT_DIR "${ABSL_LIB_DIR}" DIRECTORY)   # prefix
+get_filename_component(ABSL_CMAKE_DIR "${absl_DIR}" DIRECTORY) # .../lib/cmake
+get_filename_component(ABSL_LIB_DIR "${ABSL_CMAKE_DIR}" DIRECTORY) # .../lib
+get_filename_component(ABSL_ROOT_DIR "${ABSL_LIB_DIR}" DIRECTORY) # prefix
 set(ABSL_INCLUDE_DIR "${ABSL_ROOT_DIR}/include")
 
-# --- Spike (riscv-isa-sim) ---
-if(NOT DEFINED ENV{SPIKE_HOME})
-  message(FATAL_ERROR "SPIKE_HOME environment variable is not set")
-endif()
-set(SPIKE_HOME $ENV{SPIKE_HOME})
+# --- Spike (riscv-isa-sim, CMake config package) ---
+find_package(spike REQUIRED CONFIG)
 
 # --- NVBoard (CMake config package) ---
-if(NOT DEFINED ENV{NVBOARD_HOME})
-  message(FATAL_ERROR "NVBOARD_HOME environment variable is not set")
-endif()
-set(NVBOARD_HOME $ENV{NVBOARD_HOME})
-find_package(nvboard REQUIRED CONFIG
-  PATHS "${NVBOARD_HOME}/lib/cmake/nvboard"
-  NO_DEFAULT_PATH
-)
+find_package(nvboard REQUIRED CONFIG)
 
 # --- ELFIO (header-only) ---
 find_path(ELFIO_INCLUDE_DIR elfio/elfio.hpp REQUIRED)
@@ -43,15 +33,10 @@ add_executable(nemu ${SOURCES})
 
 target_include_directories(nemu PRIVATE
   src
-  ${SPIKE_HOME}/include
-  ${SPIKE_HOME}/include/riscv
-  ${SPIKE_HOME}/include/softfloat
   ${ELFIO_INCLUDE_DIR}
   ${READLINE_INCLUDE_DIR}
 )
 target_compile_options(nemu PRIVATE "-isystem${ABSL_INCLUDE_DIR}")
-
-target_link_directories(nemu PRIVATE ${SPIKE_HOME}/lib)
 
 target_link_libraries(nemu PRIVATE
   absl::flags
@@ -59,11 +44,7 @@ target_link_libraries(nemu PRIVATE
   absl::log
   absl::log_initialize
   absl::strings
-  riscv
-  fesvr
-  disasm
-  fdt
-  softfloat
+  spike::riscv
   nvboard::nvboard
   ${READLINE_LIB}
 )

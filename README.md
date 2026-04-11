@@ -1,2 +1,2 @@
-# nnemu
+# nemu
 not NJU emu

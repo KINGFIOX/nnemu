@@ -1,10 +1,10 @@
-#ifndef NNEMU_COMMON_H_
-#define NNEMU_COMMON_H_
+#ifndef NEMU_COMMON_H_
+#define NEMU_COMMON_H_
 
 #include <cstddef>
 #include <cstdint>
 
-namespace nnemu {
+namespace nemu {
 
 // Memory regions (matching npc SoCConfig)
 inline constexpr uint64_t kFlashBase = 0x30000000;
@@ -44,6 +44,6 @@ inline constexpr const char *kGprNames[] = {
     "s6", "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6",
 };
 
-} // namespace nnemu
+} // namespace nemu
 
-#endif // NNEMU_COMMON_H_
+#endif // NEMU_COMMON_H_

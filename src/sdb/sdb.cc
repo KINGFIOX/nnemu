@@ -14,7 +14,7 @@
 #include "sdb/command.h"
 #include "sdb/expr.h"
 
-namespace nnemu {
+namespace nemu {
 
 const std::vector<Sdb::CommandDef> &Sdb::GetCommands() {
   static const auto *commands = new std::vector<CommandDef>{
@@ -382,4 +382,4 @@ Sdb::CmdResult Sdb::cmd_break(const std::string &args) {
   return CmdResult::Continue();
 }
 
-}  // namespace nnemu
+}  // namespace nemu
