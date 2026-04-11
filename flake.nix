@@ -23,8 +23,7 @@
           cmakeBuildType = "Release";
           cmakeFlags = [
             "-DBUILD_SHARED_LIBS=OFF"
-            "-Dsoftfloat_pa=ON"
-            "-Ddefault_isa=RV64IMAFDC_zicntr_zihpm"
+            "-Ddefault_isa=RV64IMAC_zicntr_zihpm"
             "-Ddefault_priv=MSU"
             "-Ddefault_varch=vlen:128,elen:64"
           ];
