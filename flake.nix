@@ -21,12 +21,12 @@
             inherit version;
             src = pkgs.lib.cleanSource self;
 
-            nativeBuildInputs = with pkgs; [ meson ninja pkg-config dtc python3 ];
+            nativeBuildInputs = with pkgs; [ cmake ninja pkg-config dtc python3 ];
 
-            mesonBuildType = "release";
-            mesonFlags = [
-              "-Ddefault_library=static"
-              "-Dsoftfloat_pa=true"
+            cmakeBuildType = "Release";
+            cmakeFlags = [
+              "-DBUILD_SHARED_LIBS=OFF"
+              "-Dsoftfloat_pa=ON"
               "-Ddefault_isa=RV64IMAFDC_zicntr_zihpm"
               "-Ddefault_priv=MSU"
               "-Ddefault_varch=vlen:128,elen:64"
@@ -39,7 +39,7 @@
 
             meta = with pkgs.lib; {
               description = "RISC-V Spike ISA Simulator";
-              homepage = "https://github.com/riscv-software-src/riscv-isa-sim";
+              homepage = "https://github.com/KINGFIOX/riscv-isa-sim";
               license = licenses.bsd3;
               platforms = platforms.unix;
             };

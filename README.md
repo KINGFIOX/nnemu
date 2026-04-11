@@ -86,12 +86,10 @@ Build Steps
 We assume that the RISCV environment variable is set to the RISC-V tools
 install path.
 
-    $ apt-get install device-tree-compiler
-    $ mkdir build
-    $ cd build
-    $ ../configure --prefix=$RISCV
-    $ make
-    $ [sudo] make install
+    $ apt-get install device-tree-compiler cmake ninja-build
+    $ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$RISCV
+    $ cmake --build build -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"
+    $ [sudo] cmake --install build
 
 If your system uses the `yum` package manager, you can substitute
 `yum install dtc` for the first step.
@@ -99,16 +97,22 @@ If your system uses the `yum` package manager, you can substitute
 Build Steps on OpenBSD
 ----------------------
 
-Install bash, gmake, dtc, and use clang.
+Install bash, cmake, ninja, dtc, and use clang.
 
-    $ pkg_add bash gmake dtc
+    $ pkg_add bash cmake ninja dtc
     $ exec bash
     $ export CC=cc; export CXX=c++
-    $ mkdir build
-    $ cd build
-    $ ../configure --prefix=$RISCV
-    $ gmake
-    $ [doas] make install
+    $ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$RISCV
+    $ cmake --build build
+    $ [doas] cmake --install build
+
+Build with Nix Flakes
+---------------------
+
+For reproducible builds with this repository's flake:
+
+    $ nix build .#spike
+    $ nix build .#static
 
 Compiling and Running a Simple C Program
 -------------------------------------------
