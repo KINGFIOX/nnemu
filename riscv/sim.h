@@ -11,6 +11,7 @@
 #include "simif.h"
 
 #include <fesvr/htif.h>
+#include <nvboard/nvboard.h>
 #include <vector>
 #include <map>
 #include <string>
@@ -32,7 +33,8 @@ public:
         const debug_module_config_t &dm_config, const char *log_path,
         bool dtb_enabled, const char *dtb_file,
         bool socket_enabled,
-        FILE *cmd_file); // needed for command line option --cmd
+        FILE *cmd_file,
+        std::unique_ptr<nvboard::Board> board);
   ~sim_t();
 
   // run the simulation to completion
@@ -80,6 +82,8 @@ private:
   std::unique_ptr<clint_t> clint;
   std::unique_ptr<plic_t> plic;
   std::unique_ptr<ns16550_t> ns16550;
+  std::unique_ptr<vga_t> vga;
+  std::unique_ptr<nvboard::Board> board;
   bus_t bus;
   log_file_t log_file;
 

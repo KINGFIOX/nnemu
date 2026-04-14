@@ -1,7 +1,6 @@
 #include <sys/time.h>
 #include "devices.h"
 #include "processor.h"
-#include "term.h"
 
 #define UART_QUEUE_SIZE         64
 
@@ -70,8 +69,11 @@
 #define UART_SCR                7 /* I/O: Scratch Register */
 
 ns16550_t::ns16550_t(class bus_t *bus, abstract_interrupt_controller_t *intctrl,
-                     uint32_t interrupt_id, uint32_t reg_shift, uint32_t reg_io_width)
-  : bus(bus), intctrl(intctrl), interrupt_id(interrupt_id), reg_shift(reg_shift), reg_io_width(reg_io_width), backoff_counter(0)
+                     uint32_t interrupt_id, uint32_t reg_shift, uint32_t reg_io_width,
+                     std::function<int()> char_read,
+                     std::function<void(uint8_t)> char_write)
+  : bus(bus), intctrl(intctrl), interrupt_id(interrupt_id), reg_shift(reg_shift), reg_io_width(reg_io_width),
+    char_read_(std::move(char_read)), char_write_(std::move(char_write)), backoff_counter(0)
 {
   ier = 0;
   iir = UART_IIR_NO_INT;
@@ -156,7 +158,7 @@ uint8_t ns16550_t::rx_byte(void)
 void ns16550_t::tx_byte(uint8_t val)
 {
   lsr |= UART_LSR_TEMT | UART_LSR_THRE;
-  canonical_terminal_t::write(val);
+  char_write_(val);
 }
 
 bool ns16550_t::load(reg_t addr, size_t len, uint8_t* bytes)
@@ -305,7 +307,7 @@ void ns16550_t::tick(void)
     return;
   }
 
-  int rc = canonical_terminal_t::read();
+  int rc = char_read_();
   if (rc < 0) {
     backoff_counter = 1;
     return;

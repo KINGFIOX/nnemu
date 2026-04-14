@@ -10,7 +10,9 @@
 #include <queue>
 #include <vector>
 #include <utility>
+#include <functional>
 #include <cassert>
+#include <cstdint>
 
 class processor_t;
 class simif_t;
@@ -128,7 +130,9 @@ class plic_t : public abstract_device_t, public abstract_interrupt_controller_t 
 class ns16550_t : public abstract_device_t {
  public:
   ns16550_t(class bus_t *bus, abstract_interrupt_controller_t *intctrl,
-            uint32_t interrupt_id, uint32_t reg_shift, uint32_t reg_io_width);
+            uint32_t interrupt_id, uint32_t reg_shift, uint32_t reg_io_width,
+            std::function<int()> char_read,
+            std::function<void(uint8_t)> char_write);
   bool load(reg_t addr, size_t len, uint8_t* bytes);
   bool store(reg_t addr, size_t len, const uint8_t* bytes);
   void tick(void);
@@ -139,6 +143,8 @@ class ns16550_t : public abstract_device_t {
   uint32_t interrupt_id;
   uint32_t reg_shift;
   uint32_t reg_io_width;
+  std::function<int()> char_read_;
+  std::function<void(uint8_t)> char_write_;
   std::queue<uint8_t> rx_queue;
   uint8_t dll;
   uint8_t dlm;
@@ -156,6 +162,22 @@ class ns16550_t : public abstract_device_t {
 
   int backoff_counter;
   static const int MAX_BACKOFF = 16;
+};
+
+class vga_t : public abstract_device_t {
+ public:
+  vga_t(int width, int height);
+  ~vga_t();
+  bool load(reg_t addr, size_t len, uint8_t* bytes);
+  bool store(reg_t addr, size_t len, const uint8_t* bytes);
+  size_t size() { return VGA_SIZE; }
+  uint32_t* pixels() { return pixels_; }
+  int width() const { return width_; }
+  int height() const { return height_; }
+ private:
+  uint32_t *pixels_;
+  int width_, height_;
+  size_t fb_size_;
 };
 
 class mmio_plugin_device_t : public abstract_device_t {

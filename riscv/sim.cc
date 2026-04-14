@@ -40,7 +40,8 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
              const char *log_path,
              bool dtb_enabled, const char *dtb_file,
              bool socket_enabled,
-             FILE *cmd_file) // needed for command line option --cmd
+             FILE *cmd_file,
+             std::unique_ptr<nvboard::Board> board)
   : htif_t(args),
     isa(cfg->isa(), cfg->priv()),
     cfg(cfg),
@@ -48,6 +49,7 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     plugin_devices(plugin_devices),
     procs(std::max(cfg->nprocs(), size_t(1))),
     dtb_enabled(dtb_enabled),
+    board(std::move(board)),
     log_file(log_path),
     cmd_file(cmd_file),
     sout_(nullptr),
@@ -137,15 +139,31 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     intctrl = plic.get();
   }
 
-  // create ns16550
+  // create ns16550 with nvboard UART callbacks
   reg_t ns16550_base;
   uint32_t ns16550_shift, ns16550_io_width;
   if (fdt_parse_ns16550(fdt, &ns16550_base,
                         &ns16550_shift, &ns16550_io_width, "ns16550a") == 0) {
     assert(intctrl);
+    auto uart_read = [this]() -> int {
+      if (this->board && this->board->uart().Available())
+        return this->board->uart().Getchar();
+      return -1;
+    };
+    auto uart_write = [this](uint8_t ch) {
+      if (this->board) this->board->uart().Putchar(ch);
+    };
     ns16550.reset(new ns16550_t(&bus, intctrl, NS16550_INTERRUPT_ID,
-                                ns16550_shift, ns16550_io_width));
+                                ns16550_shift, ns16550_io_width,
+                                uart_read, uart_write));
     bus.add_device(ns16550_base, ns16550.get());
+  }
+
+  // create VGA framebuffer device
+  vga.reset(new vga_t(VGA_WIDTH, VGA_HEIGHT));
+  bus.add_device(VGA_BASE, vga.get());
+  if (board) {
+    board->vga().SetFramebuffer(vga->pixels(), vga->width(), vga->height());
   }
 
   //per core attribute
@@ -244,6 +262,10 @@ void sim_t::step(size_t n)
         current_proc = 0;
         if (clint) clint->increment(INTERLEAVE / INSNS_PER_RTC_TICK);
         if (ns16550) ns16550->tick();
+        if (board) {
+          board->Update();
+          board->vga().Sync();
+        }
       }
     }
   }

@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(spike VERSION 2026.03.04 LANGUAGES C CXX)
+project(nemu LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(GNUInstallDirs)
-include(CMakePackageConfigHelpers)
 
 set(default_isa "RV64IMAFDC_zicntr_zihpm" CACHE STRING "Default value for --isa switch")
 set(default_priv "MSU" CACHE STRING "Default value for --priv switch")
@@ -26,16 +26,8 @@ endif()
 check_function_exists(dlopen HAVE_DLOPEN)
 set(CMAKE_REQUIRED_LIBRARIES "")
 
-find_package(Boost 1.53 QUIET COMPONENTS system regex)
-if(Boost_FOUND)
-  set(HAVE_BOOST_ASIO_DEFINE "#define HAVE_BOOST_ASIO 1")
-  set(HAVE_BOOST_REGEX_DEFINE "#define HAVE_BOOST_REGEX 1")
-  set(BOOST_LINK_LIBS Boost::system Boost::regex)
-else()
-  set(HAVE_BOOST_ASIO_DEFINE "/* #undef HAVE_BOOST_ASIO */")
-  set(HAVE_BOOST_REGEX_DEFINE "/* #undef HAVE_BOOST_REGEX */")
-  set(BOOST_LINK_LIBS "")
-endif()
+set(HAVE_BOOST_ASIO_DEFINE "/* #undef HAVE_BOOST_ASIO */")
+set(HAVE_BOOST_REGEX_DEFINE "/* #undef HAVE_BOOST_REGEX */")
 
 if(HAVE_INT128_C)
   set(HAVE_INT128_DEFINE "#define HAVE_INT128 1")
@@ -55,11 +47,12 @@ set(FDT_ENABLED_DEFINE "#define FDT_ENABLED 1")
 set(FESVR_ENABLED_DEFINE "#define FESVR_ENABLED 1")
 set(RISCV_ENABLED_DEFINE "#define RISCV_ENABLED 1")
 set(SOFTFLOAT_ENABLED_DEFINE "#define SOFTFLOAT_ENABLED 1")
-set(SPIKE_DASM_ENABLED_DEFINE "#define SPIKE_DASM_ENABLED 1")
+set(SPIKE_DASM_ENABLED_DEFINE "/* #undef SPIKE_DASM_ENABLED */")
 set(SPIKE_MAIN_ENABLED_DEFINE "#define SPIKE_MAIN_ENABLED 1")
 
 find_program(DTC_EXECUTABLE dtc REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+find_package(nvboard REQUIRED)
 
 configure_file(
   "${CMAKE_SOURCE_DIR}/config.h.in"
@@ -118,23 +111,11 @@ target_include_directories(fesvr
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/fesvr>
   PRIVATE
     "${CMAKE_SOURCE_DIR}/fesvr"
     "${CMAKE_SOURCE_DIR}/riscv"
 )
 apply_common_flags(fesvr)
-
-add_executable(elf2hex fesvr/elf2hex.cc)
-target_include_directories(elf2hex PRIVATE
-  "${CMAKE_SOURCE_DIR}"
-  "${CMAKE_BINARY_DIR}"
-  "${CMAKE_SOURCE_DIR}/fesvr"
-  "${CMAKE_SOURCE_DIR}/riscv"
-)
-target_link_libraries(elf2hex PRIVATE fesvr)
-apply_common_flags(elf2hex)
 
 set(FDT_SRCS
   fdt/fdt.c
@@ -153,8 +134,6 @@ target_include_directories(fdt
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/fdt>
   PRIVATE
     "${CMAKE_SOURCE_DIR}/fdt"
 )
@@ -167,8 +146,6 @@ target_include_directories(softfloat
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/softfloat>
   PRIVATE
     "${CMAKE_SOURCE_DIR}/softfloat"
 )
@@ -182,8 +159,6 @@ target_include_directories(disasm
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/disasm>
   PRIVATE
     "${CMAKE_SOURCE_DIR}/disasm"
     "${CMAKE_SOURCE_DIR}/riscv"
@@ -208,6 +183,7 @@ set(RISCV_SRCS
   riscv/clint.cc
   riscv/plic.cc
   riscv/ns16550.cc
+  riscv/vga.cc
   riscv/debug_module.cc
   riscv/remote_bitbang.cc
   riscv/jtag_dtm.cc
@@ -225,9 +201,6 @@ target_include_directories(riscv
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
     $<BUILD_INTERFACE:${RISCV_GEN_DIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/riscv>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/riscv_gen>
   PRIVATE
     "${CMAKE_SOURCE_DIR}/fesvr"
     "${CMAKE_SOURCE_DIR}/fdt"
@@ -235,32 +208,14 @@ target_include_directories(riscv
     "${CMAKE_SOURCE_DIR}/disasm"
     "${CMAKE_SOURCE_DIR}/riscv"
 )
-target_link_libraries(riscv PUBLIC fesvr fdt softfloat disasm)
-if(Boost_FOUND)
-  target_link_libraries(riscv PUBLIC ${BOOST_LINK_LIBS})
-endif()
+target_link_libraries(riscv PUBLIC fesvr fdt softfloat disasm nvboard::nvboard)
 if(HAVE_DLOPEN AND DL_LIB)
   target_link_libraries(riscv PUBLIC "${DL_LIB}")
 endif()
 apply_common_flags(riscv)
 
-add_library(customext SHARED
-  customext/dummy_rocc.cc
-  customext/cflush.cc
-)
-target_include_directories(customext PRIVATE
-  "${CMAKE_SOURCE_DIR}"
-  "${CMAKE_BINARY_DIR}"
-  "${CMAKE_SOURCE_DIR}/spike_main"
-  "${CMAKE_SOURCE_DIR}/riscv"
-  "${CMAKE_SOURCE_DIR}/disasm"
-  "${CMAKE_SOURCE_DIR}/softfloat"
-)
-target_link_libraries(customext PRIVATE riscv disasm softfloat)
-apply_common_flags(customext)
-
-set(SPIKE_DEPS fesvr fdt softfloat disasm riscv)
-set(SPIKE_INC
+set(NEMU_DEPS fesvr fdt softfloat disasm riscv)
+set(NEMU_INC
   "${CMAKE_SOURCE_DIR}"
   "${CMAKE_BINARY_DIR}"
   "${CMAKE_SOURCE_DIR}/fesvr"
@@ -271,105 +226,15 @@ set(SPIKE_INC
   "${CMAKE_SOURCE_DIR}/spike_main"
 )
 
-add_executable(spike spike_main/spike.cc)
-target_include_directories(spike PRIVATE ${SPIKE_INC})
-target_link_libraries(spike PRIVATE ${SPIKE_DEPS})
-target_compile_definitions(spike PRIVATE SPIKE_VERSION="${PROJECT_VERSION}")
-if(Boost_FOUND)
-  target_link_libraries(spike PRIVATE ${BOOST_LINK_LIBS})
-endif()
+add_executable(nemu spike_main/spike.cc)
+target_include_directories(nemu PRIVATE ${NEMU_INC})
+target_link_libraries(nemu PRIVATE ${NEMU_DEPS} nvboard::nvboard)
+target_compile_definitions(nemu PRIVATE NEMU_VERSION="${PROJECT_VERSION}")
 if(HAVE_DLOPEN AND DL_LIB)
-  target_link_libraries(spike PRIVATE "${DL_LIB}")
+  target_link_libraries(nemu PRIVATE "${DL_LIB}")
 endif()
-apply_common_flags(spike)
+apply_common_flags(nemu)
 
-add_executable(spike-log-parser spike_main/spike-log-parser.cc)
-target_include_directories(spike-log-parser PRIVATE ${SPIKE_INC})
-target_link_libraries(spike-log-parser PRIVATE ${SPIKE_DEPS})
-apply_common_flags(spike-log-parser)
-
-add_executable(xspike spike_main/xspike.cc)
-target_include_directories(xspike PRIVATE ${SPIKE_INC})
-target_link_libraries(xspike PRIVATE ${SPIKE_DEPS})
-if(Boost_FOUND)
-  target_link_libraries(xspike PRIVATE ${BOOST_LINK_LIBS})
-endif()
-if(HAVE_DLOPEN AND DL_LIB)
-  target_link_libraries(xspike PRIVATE "${DL_LIB}")
-endif()
-apply_common_flags(xspike)
-
-add_executable(termios-xspike spike_main/termios-xspike.cc)
-
-add_executable(spike-dasm
-  spike_dasm/spike-dasm.cc
-  spike_dasm/spike_dasm_option_parser.cc
-)
-target_include_directories(spike-dasm PRIVATE
-  "${CMAKE_SOURCE_DIR}"
-  "${CMAKE_BINARY_DIR}"
-  "${CMAKE_SOURCE_DIR}/fesvr"
-  "${CMAKE_SOURCE_DIR}/disasm"
-  "${CMAKE_SOURCE_DIR}/softfloat"
-  "${CMAKE_SOURCE_DIR}/riscv"
-  "${CMAKE_SOURCE_DIR}/spike_dasm"
-)
-target_link_libraries(spike-dasm PRIVATE disasm softfloat riscv)
-apply_common_flags(spike-dasm)
-
-install(FILES "${CMAKE_BINARY_DIR}/config.h"
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-install(DIRECTORY fesvr fdt softfloat disasm riscv spike_main customext spike_dasm
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-  FILES_MATCHING PATTERN "*.h"
-)
-install(DIRECTORY "${RISCV_GEN_DIR}/"
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/riscv_gen
-  FILES_MATCHING PATTERN "*.h"
-)
-
-install(TARGETS fesvr fdt softfloat disasm riscv
-  EXPORT spikeTargets
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
-
-install(TARGETS customext
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
-
-install(TARGETS elf2hex spike spike-log-parser xspike termios-xspike spike-dasm
+install(TARGETS nemu
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-
-install(EXPORT spikeTargets
-  FILE spikeTargets.cmake
-  NAMESPACE spike::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/spike
-)
-
-set(spike_BOOST_FOUND ${Boost_FOUND})
-if(HAVE_DLOPEN AND DL_LIB)
-  set(spike_DLOPEN_FOUND TRUE)
-else()
-  set(spike_DLOPEN_FOUND FALSE)
-endif()
-
-configure_package_config_file(
-  "${CMAKE_SOURCE_DIR}/cmake/spikeConfig.cmake.in"
-  "${CMAKE_BINARY_DIR}/spikeConfig.cmake"
-  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/spike
-)
-
-write_basic_package_version_file(
-  "${CMAKE_BINARY_DIR}/spikeConfigVersion.cmake"
-  VERSION ${PROJECT_VERSION}
-  COMPATIBILITY SameMajorVersion
-)
-
-install(FILES
-  "${CMAKE_BINARY_DIR}/spikeConfig.cmake"
-  "${CMAKE_BINARY_DIR}/spikeConfigVersion.cmake"
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/spike
 )
