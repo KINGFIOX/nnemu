@@ -53,6 +53,7 @@ set(SPIKE_MAIN_ENABLED_DEFINE "#define SPIKE_MAIN_ENABLED 1")
 find_program(DTC_EXECUTABLE dtc REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 find_package(nvboard REQUIRED)
+find_package(absl REQUIRED)
 
 configure_file(
   "${CMAKE_SOURCE_DIR}/config.h.in"
@@ -228,7 +229,12 @@ set(NEMU_INC
 
 add_executable(nemu spike_main/spike.cc)
 target_include_directories(nemu PRIVATE ${NEMU_INC})
-target_link_libraries(nemu PRIVATE ${NEMU_DEPS} nvboard::nvboard)
+target_link_libraries(nemu PRIVATE
+  ${NEMU_DEPS}
+  nvboard::nvboard
+  absl::flags
+  absl::flags_parse
+)
 target_compile_definitions(nemu PRIVATE NEMU_VERSION="${PROJECT_VERSION}")
 if(HAVE_DLOPEN AND DL_LIB)
   target_link_libraries(nemu PRIVATE "${DL_LIB}")

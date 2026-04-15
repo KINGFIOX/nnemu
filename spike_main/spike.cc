@@ -1,52 +1,47 @@
 #include "config.h"
 #include "cfg.h"
 #include "sim.h"
+#include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
+#include "absl/flags/usage.h"
 #include <nvboard/nvboard.h>
 #include <stdio.h>
-#include <string.h>
 #include <vector>
 #include <string>
 #include <memory>
 #include <fstream>
 
-static void help(int exit_code = 1)
-{
-  fprintf(stderr,
-      "nemu -- RISC-V simulator (spike + nvboard)\n"
-      "  --image <path>   RISC-V raw binary image (.bin) [loaded to flash]\n"
-      "  --batch          run with batch mode (no SDB)\n"
-      "  --log <path>     write log to specified file\n");
-  exit(exit_code);
-}
+ABSL_FLAG(std::string, image, "", "RISC-V raw binary image (.bin) [loaded to flash]");
+ABSL_FLAG(bool, batch, false, "Run with batch mode (no SDB)");
+ABSL_FLAG(std::string, log, "", "Write log to specified file");
+ABSL_FLAG(bool, nvboard, "", "Enableh NJU Virtual Board (stub, always enable)");
 
 int main(int argc, char** argv)
 {
-  const char *image_path = nullptr;
-  const char *log_path = nullptr;
-  bool batch = false;
-
-  for (int i = 1; i < argc; i++) {
-    if (strcmp(argv[i], "--image") == 0 && i + 1 < argc) {
-      image_path = argv[++i];
-    } else if (strcmp(argv[i], "--batch") == 0) {
-      batch = true;
-    } else if (strcmp(argv[i], "--log") == 0 && i + 1 < argc) {
-      log_path = argv[++i];
-    } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
-      help(0);
-    } else {
-      fprintf(stderr, "Unknown option: %s\n", argv[i]);
-      help(1);
-    }
+  absl::SetProgramUsageMessage(
+      "nemu -- RISC-V simulator (spike + nvboard)\n"
+      "  --image=<path>  RISC-V raw binary image (.bin) [loaded to flash]\n"
+      "  --batch         run with batch mode (no SDB)\n"
+      "  --nvboard       Enableh NJU Virtual Board (stub, always enable)\n"
+      "  --log=<path>    write log to specified file");
+  auto positional_args = absl::ParseCommandLine(argc, argv);
+  if (positional_args.size() > 1) {
+    fprintf(stderr, "Error: unexpected positional arguments\n");
+    return 1;
   }
 
-  if (!image_path) {
-    fprintf(stderr, "Error: --image is required\n");
-    help(1);
+  const auto image_path = absl::GetFlag(FLAGS_image);
+  const auto log_path_flag = absl::GetFlag(FLAGS_log);
+  const char *log_path = log_path_flag.empty() ? nullptr : log_path_flag.c_str();
+  const bool batch = absl::GetFlag(FLAGS_batch);
+
+  if (image_path.empty()) {
+    fprintf(stderr, "Error: --image is required and cannot be empty\n");
+    return 1;
   }
 
   std::vector<mem_cfg_t> mem_layout = {
-    mem_cfg_t(DEFAULT_RSTVEC, 0x10000000),
+    mem_cfg_t(FLASH_BASE, FLASH_SIZE),
     mem_cfg_t(DRAM_BASE, DRAM_SIZE),
   };
 
@@ -57,12 +52,12 @@ int main(int argc, char** argv)
   {
     std::ifstream in(image_path, std::ios::binary | std::ios::ate);
     if (!in.good()) {
-      fprintf(stderr, "Cannot open image file '%s'\n", image_path);
+      fprintf(stderr, "Cannot open image file '%s'\n", image_path.c_str());
       exit(1);
     }
     auto size = in.tellg();
     in.seekg(0, std::ios::beg);
-    if (static_cast<size_t>(size) > 0x10000000) {
+    if (static_cast<size_t>(size) > FLASH_SIZE) {
       fprintf(stderr, "Image too large (%ld bytes, max 256 MiB)\n", (long)size);
       exit(1);
     }
@@ -70,7 +65,10 @@ int main(int argc, char** argv)
     in.read(buf.data(), size);
     mems[0].second->store(0, size, reinterpret_cast<const uint8_t*>(buf.data()));
     fprintf(stderr, "Loaded image '%s' (%ld bytes) to 0x%x\n",
-            image_path, (long)size, DEFAULT_RSTVEC);
+            image_path.c_str(), (long)size, (unsigned)FLASH_BASE);
+    // #region agent log
+    {FILE*f=fopen("/Users/wangfiox/Documents/ysyx/ysyx-workbench/.cursor/debug-cf6300.log","a");if(f){fprintf(f,"{\"sessionId\":\"cf6300\",\"location\":\"spike.cc:66\",\"message\":\"image_load\",\"data\":{\"mems0_base\":%lu,\"DEFAULT_RSTVEC\":%lu,\"FLASH_BASE\":%lu,\"image_size\":%ld},\"runId\":\"post-fix\",\"hypothesisId\":\"A\"}\n",(unsigned long)mem_layout[0].get_base(),(unsigned long)DEFAULT_RSTVEC,(unsigned long)FLASH_BASE,(long)size);fclose(f);}}
+    // #endregion
   }
 
   cfg_t cfg(
@@ -86,7 +84,7 @@ int main(int argc, char** argv)
       /*default_hartids=*/std::vector<size_t>{0},
       /*default_real_time_clint=*/false,
       /*default_trigger_count=*/4);
-  cfg.start_pc = DEFAULT_RSTVEC;
+  cfg.start_pc = FLASH_BASE;
 
   debug_module_config_t dm_config = {
     .progbufsize = 2,

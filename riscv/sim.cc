@@ -15,6 +15,7 @@
 #include <sstream>
 #include <climits>
 #include <cstdlib>
+#include <cstdio>
 #include <cassert>
 #include <signal.h>
 #include <unistd.h>
@@ -152,6 +153,7 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     };
     auto uart_write = [this](uint8_t ch) {
       if (this->board) this->board->uart().Putchar(ch);
+      putchar(ch);
     };
     ns16550.reset(new ns16550_t(&bus, intctrl, NS16550_INTERRUPT_ID,
                                 ns16550_shift, ns16550_io_width,
@@ -253,7 +255,10 @@ void sim_t::step(size_t n)
     steps = std::min(n - i, INTERLEAVE - current_step);
     procs[current_proc]->step(steps);
 
-    // current_step += steps;
+    current_step += steps;
+    // #region agent log
+    {static int _dbg_step_cnt=0;if(_dbg_step_cnt<3){FILE*f=fopen("/Users/wangfiox/Documents/ysyx/ysyx-workbench/.cursor/debug-cf6300.log","a");if(f){fprintf(f,"{\"sessionId\":\"cf6300\",\"location\":\"sim.cc:256\",\"message\":\"step_loop\",\"data\":{\"current_step\":%zu,\"steps\":%zu,\"INTERLEAVE\":%zu,\"will_tick\":%d},\"hypothesisId\":\"B\"}\n",current_step,steps,(size_t)INTERLEAVE,current_step==INTERLEAVE?1:0);fclose(f);}_dbg_step_cnt++;}}
+    // #endregion
     if (current_step == INTERLEAVE)
     {
       current_step = 0;
@@ -398,6 +403,9 @@ void sim_t::set_rom()
 
   boot_rom.reset(new rom_device_t(rom));
   bus.add_device(DEFAULT_RSTVEC, boot_rom.get());
+  // #region agent log
+  {FILE*f=fopen("/Users/wangfiox/Documents/ysyx/ysyx-workbench/.cursor/debug-cf6300.log","a");if(f){fprintf(f,"{\"sessionId\":\"cf6300\",\"location\":\"sim.cc:400\",\"message\":\"set_rom\",\"data\":{\"boot_rom_addr\":%lu,\"start_pc\":%lu,\"rom_size\":%zu,\"SAME_AS_IMAGE\":%d},\"hypothesisId\":\"A\"}\n",(unsigned long)DEFAULT_RSTVEC,(unsigned long)start_pc,rom.size(),DEFAULT_RSTVEC==0x30000000?1:0);fclose(f);}}
+  // #endregion
 }
 
 char* sim_t::addr_to_mem(reg_t paddr) {
