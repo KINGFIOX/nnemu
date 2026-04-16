@@ -29,6 +29,7 @@ public:
   sim_t(const cfg_t *cfg, bool halted,
         std::vector<std::pair<reg_t, mem_t*>> mems,
         std::vector<std::pair<reg_t, abstract_device_t*>> plugin_devices,
+        const std::string& fsimg_path,
         const std::vector<std::string>& args,
         const debug_module_config_t &dm_config, const char *log_path,
         bool dtb_enabled, const char *dtb_file,
@@ -82,6 +83,7 @@ private:
   std::unique_ptr<clint_t> clint;
   std::unique_ptr<plic_t> plic;
   std::unique_ptr<ns16550_t> ns16550;
+  std::unique_ptr<sync_disk_t> sync_disk;
   std::unique_ptr<vga_t> vga;
   std::unique_ptr<nvboard::Board> board;
   bus_t bus;

@@ -10,7 +10,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(GNUInstallDirs)
 
-set(default_isa "RV64IMAFDC_zicntr_zihpm" CACHE STRING "Default value for --isa switch")
+set(default_isa "RV64IMAFDC_zicntr_zihpm_sstc_svadu" CACHE STRING "Default value for --isa switch" FORCE)
 set(default_priv "MSU" CACHE STRING "Default value for --priv switch")
 set(default_varch "vlen:128,elen:64" CACHE STRING "Default value for --varch switch")
 

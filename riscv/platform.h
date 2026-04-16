@@ -16,7 +16,9 @@
 #define NS16550_SIZE       0x1000
 #define NS16550_REG_SHIFT  0
 #define NS16550_REG_IO_WIDTH 1
-#define NS16550_INTERRUPT_ID 1
+#define NS16550_INTERRUPT_ID 10
+#define SYNC_DISK_BASE     0x10001000
+#define SYNC_DISK_SIZE     0x1000
 #define VGA_BASE           0x21000000
 #define VGA_SIZE           0x200000
 #define VGA_WIDTH          640

@@ -73,7 +73,7 @@ ns16550_t::ns16550_t(class bus_t *bus, abstract_interrupt_controller_t *intctrl,
                      std::function<int()> char_read,
                      std::function<void(uint8_t)> char_write)
   : bus(bus), intctrl(intctrl), interrupt_id(interrupt_id), reg_shift(reg_shift), reg_io_width(reg_io_width),
-    char_read_(std::move(char_read)), char_write_(std::move(char_write)), backoff_counter(0)
+    char_read_(std::move(char_read)), char_write_(std::move(char_write)), thri_ip(false), backoff_counter(0)
 {
   ier = 0;
   iir = UART_IIR_NO_INT;
@@ -91,8 +91,8 @@ void ns16550_t::update_interrupt(void)
   uint8_t interrupts = 0;
 
   /* Handle clear rx */
-  if (lcr & UART_FCR_CLEAR_RCVR) {
-    lcr &= ~UART_FCR_CLEAR_RCVR;
+  if (fcr & UART_FCR_CLEAR_RCVR) {
+    fcr &= ~UART_FCR_CLEAR_RCVR;
     while (!rx_queue.empty()) {
       rx_queue.pop();
     }
@@ -100,8 +100,8 @@ void ns16550_t::update_interrupt(void)
   }
 
   /* Handle clear tx */
-  if (lcr & UART_FCR_CLEAR_XMIT) {
-    lcr &= ~UART_FCR_CLEAR_XMIT;
+  if (fcr & UART_FCR_CLEAR_XMIT) {
+    fcr &= ~UART_FCR_CLEAR_XMIT;
     lsr |= UART_LSR_TEMT | UART_LSR_THRE;
   }
 
@@ -111,7 +111,7 @@ void ns16550_t::update_interrupt(void)
   }
 
   /* Transmitter empty and interrupt enabled ? */
-  if ((ier & UART_IER_THRI) && (lsr & UART_LSR_TEMT)) {
+  if ((ier & UART_IER_THRI) && (lsr & UART_LSR_TEMT) && thri_ip) {
     interrupts |= UART_IIR_THRI;
   }
 
@@ -158,6 +158,7 @@ uint8_t ns16550_t::rx_byte(void)
 void ns16550_t::tx_byte(uint8_t val)
 {
   lsr |= UART_LSR_TEMT | UART_LSR_THRE;
+  thri_ip = true;
   char_write_(val);
 }
 
@@ -190,6 +191,10 @@ bool ns16550_t::load(reg_t addr, size_t len, uint8_t* bytes)
     break;
   case UART_IIR:
     val = iir | UART_IIR_TYPE_BITS;
+    if (iir & UART_IIR_THRI) {
+      thri_ip = false;
+      update = true;
+    }
     break;
   case UART_LCR:
     val = lcr;
@@ -255,7 +260,10 @@ bool ns16550_t::store(reg_t addr, size_t len, const uint8_t* bytes)
     break;
   case UART_IER:
     if (!(lcr & UART_LCR_DLAB)) {
+      uint8_t old_ier = ier;
       ier = val & 0x0f;
+      if ((ier & UART_IER_THRI) && !(old_ier & UART_IER_THRI))
+        thri_ip = true;
     } else {
       dlm = val;
     }

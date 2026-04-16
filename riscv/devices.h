@@ -13,6 +13,7 @@
 #include <functional>
 #include <cassert>
 #include <cstdint>
+#include <string>
 
 class processor_t;
 class simif_t;
@@ -160,8 +161,48 @@ class ns16550_t : public abstract_device_t {
   uint8_t rx_byte(void);
   void tx_byte(uint8_t val);
 
+  bool thri_ip;
+
   int backoff_counter;
   static const int MAX_BACKOFF = 16;
+};
+
+class sync_disk_t : public abstract_device_t {
+ public:
+  sync_disk_t(class bus_t* bus, const std::string& image_path);
+  ~sync_disk_t();
+  bool load(reg_t addr, size_t len, uint8_t* bytes);
+  bool store(reg_t addr, size_t len, const uint8_t* bytes);
+
+ private:
+  enum : uint32_t {
+    CMD_NONE = 0,
+    CMD_READ = 1,
+    CMD_WRITE = 2,
+  };
+
+  enum : uint32_t {
+    STATUS_IDLE = 0,
+    STATUS_DONE = 1,
+    STATUS_ERROR = 2,
+  };
+
+  class bus_t* bus;
+  int fd;
+  uint32_t cmd;
+  uint32_t status;
+  uint32_t count;
+  uint32_t reserved;
+  uint32_t lba_low;
+  uint32_t lba_high;
+  uint32_t guest_pa_low;
+  uint32_t guest_pa_high;
+  uint32_t error_code;
+  uint32_t last_result_bytes;
+
+  bool execute_command();
+  uint64_t lba() const;
+  uint64_t guest_pa() const;
 };
 
 class vga_t : public abstract_device_t {

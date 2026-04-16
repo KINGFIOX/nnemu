@@ -1,6 +1,12 @@
 #include "devices.h"
 #include "mmu.h"
 #include <stdexcept>
+#include <algorithm>
+#include <cerrno>
+#include <cstring>
+#include <fcntl.h>
+#include <unistd.h>
+#include <vector>
 
 void bus_t::add_device(reg_t addr, abstract_device_t* dev)
 {
@@ -149,4 +155,195 @@ void mem_t::dump(std::ostream& o) {
       o.write(sparse_memory_map[ppn], PGSIZE);
     }
   }
+}
+
+sync_disk_t::sync_disk_t(class bus_t* bus, const std::string& image_path)
+  : bus(bus), fd(-1), cmd(CMD_NONE), status(STATUS_IDLE), count(0), reserved(0),
+    lba_low(0), lba_high(0), guest_pa_low(0), guest_pa_high(0),
+    error_code(0), last_result_bytes(0)
+{
+  fd = open(image_path.c_str(), O_RDWR, 0);
+  if (fd < 0) {
+    throw std::runtime_error("failed to open fs image '" + image_path + "': " + strerror(errno));
+  }
+}
+
+sync_disk_t::~sync_disk_t()
+{
+  if (fd >= 0) {
+    close(fd);
+    fd = -1;
+  }
+}
+
+uint64_t sync_disk_t::lba() const
+{
+  return (uint64_t(lba_high) << 32) | lba_low;
+}
+
+uint64_t sync_disk_t::guest_pa() const
+{
+  return (uint64_t(guest_pa_high) << 32) | guest_pa_low;
+}
+
+bool sync_disk_t::load(reg_t addr, size_t len, uint8_t* bytes)
+{
+  if (addr + len < addr || addr + len > SYNC_DISK_SIZE) {
+    return false;
+  }
+
+  switch (addr & ~reg_t(0x3)) {
+    case 0x00:
+      read_little_endian_reg(cmd, addr, len, bytes);
+      return true;
+    case 0x04:
+      read_little_endian_reg(status, addr, len, bytes);
+      return true;
+    case 0x08:
+      read_little_endian_reg(count, addr, len, bytes);
+      return true;
+    case 0x0c:
+      read_little_endian_reg(reserved, addr, len, bytes);
+      return true;
+    case 0x10:
+      read_little_endian_reg(lba_low, addr, len, bytes);
+      return true;
+    case 0x14:
+      read_little_endian_reg(lba_high, addr, len, bytes);
+      return true;
+    case 0x18:
+      read_little_endian_reg(guest_pa_low, addr, len, bytes);
+      return true;
+    case 0x1c:
+      read_little_endian_reg(guest_pa_high, addr, len, bytes);
+      return true;
+    case 0x20:
+      read_little_endian_reg(error_code, addr, len, bytes);
+      return true;
+    case 0x24:
+      read_little_endian_reg(last_result_bytes, addr, len, bytes);
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool sync_disk_t::store(reg_t addr, size_t len, const uint8_t* bytes)
+{
+  if (addr + len < addr || addr + len > SYNC_DISK_SIZE) {
+    return false;
+  }
+
+  switch (addr & ~reg_t(0x3)) {
+    case 0x00:
+      write_little_endian_reg(&cmd, addr, len, bytes);
+      if (cmd == CMD_NONE) {
+        status = STATUS_IDLE;
+        error_code = 0;
+        return true;
+      }
+      return execute_command();
+    case 0x04:
+      write_little_endian_reg(&status, addr, len, bytes);
+      if (status == STATUS_IDLE) {
+        error_code = 0;
+      }
+      return true;
+    case 0x08:
+      write_little_endian_reg(&count, addr, len, bytes);
+      return true;
+    case 0x0c:
+      write_little_endian_reg(&reserved, addr, len, bytes);
+      return true;
+    case 0x10:
+      write_little_endian_reg(&lba_low, addr, len, bytes);
+      return true;
+    case 0x14:
+      write_little_endian_reg(&lba_high, addr, len, bytes);
+      return true;
+    case 0x18:
+      write_little_endian_reg(&guest_pa_low, addr, len, bytes);
+      return true;
+    case 0x1c:
+      write_little_endian_reg(&guest_pa_high, addr, len, bytes);
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool sync_disk_t::execute_command()
+{
+  static constexpr uint32_t kSectorSize = 512;
+
+  if (count == 0) {
+    status = STATUS_DONE;
+    error_code = 0;
+    last_result_bytes = 0;
+    cmd = CMD_NONE;
+    return true;
+  }
+  if (cmd != CMD_READ && cmd != CMD_WRITE) {
+    status = STATUS_ERROR;
+    error_code = EINVAL;
+    last_result_bytes = 0;
+    cmd = CMD_NONE;
+    return false;
+  }
+
+  const uint64_t total_bytes = uint64_t(count) * kSectorSize;
+  if (total_bytes > UINT32_MAX) {
+    status = STATUS_ERROR;
+    error_code = EINVAL;
+    last_result_bytes = 0;
+    cmd = CMD_NONE;
+    return false;
+  }
+
+  std::vector<uint8_t> buffer(total_bytes);
+  const off_t offset = static_cast<off_t>(lba() * kSectorSize);
+
+  if (cmd == CMD_READ) {
+    const ssize_t got = pread(fd, buffer.data(), buffer.size(), offset);
+    if (got < 0) {
+      status = STATUS_ERROR;
+      error_code = errno;
+      last_result_bytes = 0;
+      cmd = CMD_NONE;
+      return false;
+    }
+    if (static_cast<size_t>(got) < buffer.size()) {
+      memset(buffer.data() + got, 0, buffer.size() - got);
+    }
+    if (!bus->store(guest_pa(), buffer.size(), buffer.data())) {
+      status = STATUS_ERROR;
+      error_code = EFAULT;
+      last_result_bytes = 0;
+      cmd = CMD_NONE;
+      return false;
+    }
+    last_result_bytes = buffer.size();
+  } else {
+    if (!bus->load(guest_pa(), buffer.size(), buffer.data())) {
+      status = STATUS_ERROR;
+      error_code = EFAULT;
+      last_result_bytes = 0;
+      cmd = CMD_NONE;
+      return false;
+    }
+    const ssize_t wrote = pwrite(fd, buffer.data(), buffer.size(), offset);
+    if (wrote < 0 || static_cast<size_t>(wrote) != buffer.size()) {
+      status = STATUS_ERROR;
+      error_code = (wrote < 0) ? errno : EIO;
+      last_result_bytes = 0;
+      cmd = CMD_NONE;
+      return false;
+    }
+    last_result_bytes = buffer.size();
+  }
+
+  status = STATUS_DONE;
+  error_code = 0;
+  cmd = CMD_NONE;
+  return true;
 }

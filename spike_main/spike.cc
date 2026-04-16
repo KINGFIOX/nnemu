@@ -1,5 +1,6 @@
 #include "config.h"
 #include "cfg.h"
+#include "platform.h"
 #include "sim.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
@@ -12,6 +13,9 @@
 #include <fstream>
 
 ABSL_FLAG(std::string, image, "", "RISC-V raw binary image (.bin) [loaded to flash]");
+ABSL_FLAG(std::string, fsimg, "xv6-riscv/fs.img", "Disk image file used by sync MMIO disk");
+ABSL_FLAG(uint64_t, image_base, DRAM_BASE, "Physical address to load --image");
+ABSL_FLAG(uint64_t, start_pc, 0, "Start PC (0 means use --image_base)");
 ABSL_FLAG(bool, batch, false, "Run with batch mode (no SDB)");
 ABSL_FLAG(std::string, log, "", "Write log to specified file");
 ABSL_FLAG(bool, nvboard, "", "Enableh NJU Virtual Board (stub, always enable)");
@@ -21,6 +25,9 @@ int main(int argc, char** argv)
   absl::SetProgramUsageMessage(
       "nemu -- RISC-V simulator (spike + nvboard)\n"
       "  --image=<path>  RISC-V raw binary image (.bin) [loaded to flash]\n"
+      "  --fsimg=<path>  disk image file for sync MMIO disk\n"
+      "  --image_base=<addr>  physical load base for --image\n"
+      "  --start_pc=<addr>    entry pc (default: image_base)\n"
       "  --batch         run with batch mode (no SDB)\n"
       "  --nvboard       Enableh NJU Virtual Board (stub, always enable)\n"
       "  --log=<path>    write log to specified file");
@@ -31,6 +38,9 @@ int main(int argc, char** argv)
   }
 
   const auto image_path = absl::GetFlag(FLAGS_image);
+  const auto fsimg_path = absl::GetFlag(FLAGS_fsimg);
+  const auto image_base = static_cast<reg_t>(absl::GetFlag(FLAGS_image_base));
+  const auto start_pc_flag = static_cast<reg_t>(absl::GetFlag(FLAGS_start_pc));
   const auto log_path_flag = absl::GetFlag(FLAGS_log);
   const char *log_path = log_path_flag.empty() ? nullptr : log_path_flag.c_str();
   const bool batch = absl::GetFlag(FLAGS_batch);
@@ -57,18 +67,27 @@ int main(int argc, char** argv)
     }
     auto size = in.tellg();
     in.seekg(0, std::ios::beg);
-    if (static_cast<size_t>(size) > FLASH_SIZE) {
-      fprintf(stderr, "Image too large (%ld bytes, max 256 MiB)\n", (long)size);
-      exit(1);
-    }
     std::vector<char> buf(size);
     in.read(buf.data(), size);
-    mems[0].second->store(0, size, reinterpret_cast<const uint8_t*>(buf.data()));
-    fprintf(stderr, "Loaded image '%s' (%ld bytes) to 0x%x\n",
-            image_path.c_str(), (long)size, (unsigned)FLASH_BASE);
-    // #region agent log
-    {FILE*f=fopen("/Users/wangfiox/Documents/ysyx/ysyx-workbench/.cursor/debug-cf6300.log","a");if(f){fprintf(f,"{\"sessionId\":\"cf6300\",\"location\":\"spike.cc:66\",\"message\":\"image_load\",\"data\":{\"mems0_base\":%lu,\"DEFAULT_RSTVEC\":%lu,\"FLASH_BASE\":%lu,\"image_size\":%ld},\"runId\":\"post-fix\",\"hypothesisId\":\"A\"}\n",(unsigned long)mem_layout[0].get_base(),(unsigned long)DEFAULT_RSTVEC,(unsigned long)FLASH_BASE,(long)size);fclose(f);}}
-    // #endregion
+    bool loaded = false;
+    for (const auto& m : mems) {
+      if (m.first == image_base) {
+        if (static_cast<size_t>(size) > m.second->size()) {
+          fprintf(stderr, "Image too large (%ld bytes) for region @ 0x%lx (size 0x%lx)\n",
+                  (long)size, (unsigned long)image_base, (unsigned long)m.second->size());
+          exit(1);
+        }
+        m.second->store(0, size, reinterpret_cast<const uint8_t*>(buf.data()));
+        loaded = true;
+        break;
+      }
+    }
+    if (!loaded) {
+      fprintf(stderr, "No memory region found at image_base=0x%lx\n", (unsigned long)image_base);
+      exit(1);
+    }
+    fprintf(stderr, "Loaded image '%s' (%ld bytes) to 0x%lx\n",
+            image_path.c_str(), (long)size, (unsigned long)image_base);
   }
 
   cfg_t cfg(
@@ -84,7 +103,7 @@ int main(int argc, char** argv)
       /*default_hartids=*/std::vector<size_t>{0},
       /*default_real_time_clint=*/false,
       /*default_trigger_count=*/4);
-  cfg.start_pc = FLASH_BASE;
+  cfg.start_pc = (start_pc_flag == 0) ? image_base : start_pc_flag;
 
   debug_module_config_t dm_config = {
     .progbufsize = 2,
@@ -104,7 +123,7 @@ int main(int argc, char** argv)
   std::vector<std::pair<reg_t, abstract_device_t*>> plugin_devices;
 
   sim_t s(&cfg, false,
-      mems, plugin_devices, htif_args, dm_config, log_path,
+      mems, plugin_devices, fsimg_path, htif_args, dm_config, log_path,
       true, nullptr, false, nullptr,
       std::move(board));
 

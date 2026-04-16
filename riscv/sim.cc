@@ -36,6 +36,7 @@ const size_t sim_t::INTERLEAVE;
 sim_t::sim_t(const cfg_t *cfg, bool halted,
              std::vector<std::pair<reg_t, mem_t*>> mems,
              std::vector<std::pair<reg_t, abstract_device_t*>> plugin_devices,
+             const std::string& fsimg_path,
              const std::vector<std::string>& args,
              const debug_module_config_t &dm_config,
              const char *log_path,
@@ -71,6 +72,9 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
 
   for (auto& x : plugin_devices)
     bus.add_device(x.first, x.second);
+
+  sync_disk.reset(new sync_disk_t(&bus, fsimg_path));
+  bus.add_device(SYNC_DISK_BASE, sync_disk.get());
 
   debug_module.add_device(&bus);
 
@@ -153,7 +157,8 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     };
     auto uart_write = [this](uint8_t ch) {
       if (this->board) this->board->uart().Putchar(ch);
-      putchar(ch);
+      fputc(ch, stdout);
+      fflush(stdout);
     };
     ns16550.reset(new ns16550_t(&bus, intctrl, NS16550_INTERRUPT_ID,
                                 ns16550_shift, ns16550_io_width,
@@ -193,9 +198,10 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
 
     //handle mmu-type
     const char *mmu_type;
+    const auto default_mmu = (procs[cpu_idx]->get_xlen() <= 32) ? IMPL_MMU_SV32 : IMPL_MMU_SV39;
     rc = fdt_parse_mmu_type(fdt, cpu_offset, &mmu_type);
     if (rc == 0) {
-      procs[cpu_idx]->set_mmu_capability(IMPL_MMU_SBARE);
+      procs[cpu_idx]->set_mmu_capability(default_mmu);
       if (strncmp(mmu_type, "riscv,sv32", strlen("riscv,sv32")) == 0) {
         procs[cpu_idx]->set_mmu_capability(IMPL_MMU_SV32);
       } else if (strncmp(mmu_type, "riscv,sv39", strlen("riscv,sv39")) == 0) {
@@ -214,7 +220,7 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
         exit(1);
       }
     } else {
-      procs[cpu_idx]->set_mmu_capability(IMPL_MMU_SBARE);
+      procs[cpu_idx]->set_mmu_capability(default_mmu);
     }
 
     cpu_idx++;
@@ -256,9 +262,6 @@ void sim_t::step(size_t n)
     procs[current_proc]->step(steps);
 
     current_step += steps;
-    // #region agent log
-    {static int _dbg_step_cnt=0;if(_dbg_step_cnt<3){FILE*f=fopen("/Users/wangfiox/Documents/ysyx/ysyx-workbench/.cursor/debug-cf6300.log","a");if(f){fprintf(f,"{\"sessionId\":\"cf6300\",\"location\":\"sim.cc:256\",\"message\":\"step_loop\",\"data\":{\"current_step\":%zu,\"steps\":%zu,\"INTERLEAVE\":%zu,\"will_tick\":%d},\"hypothesisId\":\"B\"}\n",current_step,steps,(size_t)INTERLEAVE,current_step==INTERLEAVE?1:0);fclose(f);}_dbg_step_cnt++;}}
-    // #endregion
     if (current_step == INTERLEAVE)
     {
       current_step = 0;
@@ -268,8 +271,10 @@ void sim_t::step(size_t n)
         if (clint) clint->increment(INTERLEAVE / INSNS_PER_RTC_TICK);
         if (ns16550) ns16550->tick();
         if (board) {
+          static size_t vga_counter = 0;
           board->Update();
-          board->vga().Sync();
+          if (++vga_counter % 200 == 0)
+            board->vga().Sync();
         }
       }
     }
@@ -403,9 +408,6 @@ void sim_t::set_rom()
 
   boot_rom.reset(new rom_device_t(rom));
   bus.add_device(DEFAULT_RSTVEC, boot_rom.get());
-  // #region agent log
-  {FILE*f=fopen("/Users/wangfiox/Documents/ysyx/ysyx-workbench/.cursor/debug-cf6300.log","a");if(f){fprintf(f,"{\"sessionId\":\"cf6300\",\"location\":\"sim.cc:400\",\"message\":\"set_rom\",\"data\":{\"boot_rom_addr\":%lu,\"start_pc\":%lu,\"rom_size\":%zu,\"SAME_AS_IMAGE\":%d},\"hypothesisId\":\"A\"}\n",(unsigned long)DEFAULT_RSTVEC,(unsigned long)start_pc,rom.size(),DEFAULT_RSTVEC==0x30000000?1:0);fclose(f);}}
-  // #endregion
 }
 
 char* sim_t::addr_to_mem(reg_t paddr) {
