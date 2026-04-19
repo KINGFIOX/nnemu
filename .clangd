@@ -2,4 +2,5 @@ CompileFlags:
   CompilationDatabase: build
   Add:
     - -isysroot/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
-
+    - -isystem/nix/store/dsdf5ximwwyvmb1sqrdyj9i0r9f6h9z1-abseil-cpp-20260107.1-dev/include
+    - -isystem../nix/flakes/nvboard/include

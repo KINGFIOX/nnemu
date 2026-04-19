@@ -3,6 +3,8 @@ BINARY = $(BUILD_DIR)/nemu
 
 CMAKE_FLAGS = -G Ninja
 
+RELEASE ?= 1
+
 ifdef RELEASE
 CMAKE_FLAGS += -DCMAKE_BUILD_TYPE=Release
 else
