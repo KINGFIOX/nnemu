@@ -13,7 +13,7 @@
 #include <fstream>
 
 ABSL_FLAG(std::string, image, "", "RISC-V raw binary image (.bin) [loaded to flash]");
-ABSL_FLAG(std::string, fsimg, "xv6-riscv/fs.img", "Disk image file used by sync MMIO disk");
+ABSL_FLAG(std::string, fsimg, "", "Disk image file used by sync MMIO disk (empty = no disk attached)");
 ABSL_FLAG(uint64_t, image_base, DRAM_BASE, "Physical address to load --image");
 ABSL_FLAG(uint64_t, start_pc, 0, "Start PC (0 means use --image_base)");
 ABSL_FLAG(bool, batch, false, "Run with batch mode (no SDB)");

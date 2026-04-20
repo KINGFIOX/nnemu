@@ -73,8 +73,10 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
   for (auto& x : plugin_devices)
     bus.add_device(x.first, x.second);
 
-  sync_disk.reset(new sync_disk_t(&bus, fsimg_path));
-  bus.add_device(SYNC_DISK_BASE, sync_disk.get());
+  if (!fsimg_path.empty()) {
+    sync_disk.reset(new sync_disk_t(&bus, fsimg_path));
+    bus.add_device(SYNC_DISK_BASE, sync_disk.get());
+  }
 
   debug_module.add_device(&bus);
 
